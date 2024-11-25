@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "425905147427",
+    "project_id": "seeker-fadfa",
+    "storage_bucket": "seeker-fadfa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:425905147427:android:a69970e9e191bb1129eb96",
+        "android_client_info": {
+          "package_name": "com.seeker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkpUXlK3wvuRprF7mlR9x7OcNUhWax87Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

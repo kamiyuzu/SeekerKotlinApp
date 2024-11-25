@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Seeker</string>
+    <string name="switch_check">Remember checkbox</string>
+    <string name="login_name">Login</string>
+    <string name="index_name">Index</string>
+    <string name="qr_name">QRScanner</string>
+    <string name="details_name">Details</string>
+    <string name="categories_name">Categories</string>
+</resources>
