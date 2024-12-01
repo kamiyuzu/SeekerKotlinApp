@@ -1,83 +1,104 @@
 package com.seeker.views.index
 
 import android.Manifest
-import android.content.Context
 import android.content.pm.PackageManager
-import android.icu.text.SimpleDateFormat
-import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
+import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
+import androidx.lifecycle.ViewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.seeker.BuildConfig
+import coil3.compose.AsyncImage
+import com.seeker.external.services.AssetResult
+import com.seeker.external.services.index
 import com.seeker.ui.theme.SeekerTheme
+import com.seeker.views.details.AssetView
+import com.seeker.views.main.MainViewModel
 import com.seeker.views.screens.Screens
-import java.io.File
-import java.util.Date
-import java.util.Objects
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
-fun Context.createImageFile(): File {
-    // Create an image file name
-    val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
-    val imageFileName = "JPEG_" + timeStamp + "_"
-    val image = File.createTempFile(
-        imageFileName, /* prefix */
-        ".jpg", /* suffix */
-        externalCacheDir      /* directory */
-    )
-    return image
+class IndexViewModel(): ViewModel() {
+    var assets: List<AssetResult> = emptyList()
+    var fetchedIndex = false
+
+    suspend fun fetchIndex(username: String): List<AssetResult> {
+        try {
+            if (!fetchedIndex) assets = index(username)
+            fetchedIndex = true
+            return assets
+        } catch (e: Exception) {
+            // Handle exceptions (like network failure)
+            Log.println(Log.INFO,"LoginViewModel/login", "Error ${e.stackTraceToString()}")
+            return assets
+        }
+    }
 }
 
+fun fetchIndex(mainViewModel: MainViewModel, indexViewModel: IndexViewModel, coroutineScope: CoroutineScope) {
+    coroutineScope.launch { indexViewModel.fetchIndex(mainViewModel.username) }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun IndexView(navController: NavHostController) {
+fun IndexView(navController: NavHostController, mainViewModel: MainViewModel) {
     val context = LocalContext.current
-    val file = context.createImageFile()
-    val uri = FileProvider.getUriForFile(
-        Objects.requireNonNull(context),
-        BuildConfig.APPLICATION_ID + ".provider", file
-    )
-
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentScreen = Screens.valueOf(backStackEntry?.destination?.route ?: Screens.Index.name)
-    Log.println(Log.DEBUG, "IndexViewgetCurrentScreen", "${currentScreen}")
-
     var hasRequestedPermission by rememberSaveable { mutableStateOf(false) }
     var permissionRequestCompleted by rememberSaveable { mutableStateOf(false) }
-
-    var capturedImageUri by remember {
-        mutableStateOf<Uri>(Uri.EMPTY)
-    }
-
-    val cameraLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) {
-            capturedImageUri = uri
-        }
+    val indexViewModel by remember { mutableStateOf(IndexViewModel()) }
+    val coroutineScope = rememberCoroutineScope()
+    if (!indexViewModel.fetchedIndex) fetchIndex(mainViewModel, indexViewModel, coroutineScope)
+    val carouselMultiBrowseState = rememberCarouselState(itemCount = { indexViewModel.assets.size }, initialItem = 0)
+    val heigth = LocalConfiguration.current.screenHeightDp
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -99,30 +120,69 @@ fun IndexView(navController: NavHostController) {
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 30.dp)
+            .verticalScroll(rememberScrollState())
     ) {
-        Row(modifier = Modifier
-            .fillMaxSize()
-            .weight(1F),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.Absolute.Right
-        ) {
-            FloatingActionButton(
-                onClick = {
-                    val permissionCheckResult =
-                        ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
-                    if (permissionCheckResult == PackageManager.PERMISSION_GRANTED) {
-                        //cameraLauncher.launch(uri)
-                        navController.navigate(Screens.QR.name)
-                    } else {
-                        // Request a permission
-                        permissionLauncher.launch(Manifest.permission.CAMERA)
-                        hasRequestedPermission = true
+        Spacer(modifier = Modifier.height(10.dp))
+        if (indexViewModel.assets.isNotEmpty()) {
+            Row(modifier = Modifier.fillMaxWidth().height((heigth/3).dp)) {
+                HorizontalMultiBrowseCarousel(
+                    state = carouselMultiBrowseState,
+                    preferredItemWidth = 250.dp,
+                    itemSpacing = 10.dp,
+                    minSmallItemWidth = 50.dp,
+                    maxSmallItemWidth = 100.dp,
+                    contentPadding = PaddingValues(start = 10.dp),
+                ) { index ->
+                    val item = indexViewModel.assets[index]
+                    AssetView(Modifier, item.latitude.toDouble(), item.longitude.toDouble(), item.set.toInt())
+                    //Paging
+                    LaunchedEffect(key1 = true) {
+                        if (indexViewModel.assets.size - 1 == index) {
+//                    pokemonListViewModel.requestToFetchPokemon(
+//                        state.nextPage
+//                    )
+                        }
                     }
-                },
-                shape = CircleShape,
-            ) {
-                Icon(Icons.Filled.Add, "Floating action button.")
+                }
             }
+        }
+
+        indexViewModel.assets.forEach { item ->
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(modifier = Modifier
+                .clickable(
+                    onClick = {
+                        navController.navigate("${Screens.Details.name}/${item.set}")
+                    },
+                )
+            ){
+                AssetView(Modifier, item.latitude.toDouble(), item.longitude.toDouble(), item.set.toInt())
+            }
+
+        }
+    }
+    Row(modifier = Modifier
+        .fillMaxSize()
+        .padding(10.dp),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.Absolute.Right
+    ) {
+        FloatingActionButton(
+            onClick = {
+                val permissionCheckResult =
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+                if (permissionCheckResult == PackageManager.PERMISSION_GRANTED) {
+                    //cameraLauncher.launch(uri)
+                    navController.navigate(Screens.QR.name)
+                } else {
+                    // Request a permission
+                    permissionLauncher.launch(Manifest.permission.CAMERA)
+                    hasRequestedPermission = true
+                }
+            },
+            shape = CircleShape,
+        ) {
+            Icon(Icons.Filled.Add, "Floating action button.")
         }
     }
 }
@@ -131,7 +191,8 @@ fun IndexView(navController: NavHostController) {
 @Composable
 fun IndexViewPreview() {
     val navController = rememberNavController()
+    val mainViewModel = MainViewModel()
     SeekerTheme {
-        IndexView(navController = navController)
+        IndexView(navController = navController, mainViewModel = mainViewModel)
     }
 }

@@ -1,7 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("com.google.gms.google-services")
+    alias(libs.plugins.kotlin.serialization)
+    id("com.google.devtools.ksp") version "2.1.0-1.0.29"
 }
 
 android {
@@ -61,7 +62,15 @@ android {
     }
 }
 
+val ktorVersion: String by project
+
 dependencies {
+    // Ktor deps
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
+    implementation("io.ktor:ktor-client-cio:$ktorVersion")
+    implementation("io.ktor:ktor-client-logging:$ktorVersion")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     // QR dep
     implementation(libs.qr.kit)
     // Compose deps
@@ -78,15 +87,13 @@ dependencies {
     // Permissions handler dep
     implementation(libs.accompanist.permissions)
 
-    // So, make sure you also include that repository in your project's build.gradle file.
-    implementation(libs.app.update)
+    // Logger
+    implementation(libs.slf4j.android)
 
-    // For Kotlin users also import the Kotlin extensions library for Play In-App Update:
-    implementation(libs.app.update.ktx)
-
-    // For Firebase Auth Impl
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth.ktx)
+    // Room database wrapper
+    ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -96,8 +103,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    //implementation(libs.firebase.auth.common)
-    //implementation(libs.firebase.auth.ktx)
+    implementation(libs.androidx.ui.test.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

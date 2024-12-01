@@ -5,7 +5,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,24 +24,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.google.firebase.auth.EmailAuthProvider
-import com.seeker.auth.authenticate
-import com.seeker.auth.linkAccount
 import com.seeker.data.Credentials
 import com.seeker.datastores.PASSWORD_PREFERENCE_KEY
 import com.seeker.datastores.USERNAME_PREFERENCE_KEY
 import com.seeker.datastores.readPreference
 import com.seeker.datastores.storePreference
-import com.seeker.ui.theme.LocalSnackbarHostState
+import com.seeker.external.services.login
 import com.seeker.ui.theme.SeekerTheme
 import com.seeker.views.main.MainViewModel
 import com.seeker.views.screens.Screens
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.security.MessageDigest
 
@@ -53,43 +47,31 @@ private fun String.hashedWithSha256() =
         .digest(toByteArray())
         .toHexString()
 
-suspend fun launchCatching(snackBarHostState: SnackbarHostState, coroutineScope: CoroutineScope, snackbar: Boolean = true, block: suspend CoroutineScope.() -> Unit) =
-    coroutineScope.launch(
-        CoroutineExceptionHandler { _, throwable ->
-            if (snackbar) {
-                //snackBarHostState.showSnackbar(throwable.stackTraceToString())
-            }
-            Log.println(Log.DEBUG,"launchCatching", throwable.stackTraceToString())
-        },
-        block = block
-    )
+class LoginViewModel(): ViewModel() {
+    suspend fun login(creds: Credentials): String {
+        try {
+            return login(creds.user, creds.pwd.hashedWithSha256())
+        } catch (e: Exception) {
+            // Handle exceptions (like network failure)
+            Log.println(Log.INFO,"LoginViewModel/login", "Error ${e.stackTraceToString()}")
+            return ""
+        }
+    }
+}
 
-
-private suspend fun checkCredentials(creds: Credentials, context: Context, navController: NavHostController, mainViewModel: MainViewModel, snackBarHostState: SnackbarHostState, coroutineScope: CoroutineScope, signIn: Boolean): Boolean {
+private suspend fun checkCredentials(creds: Credentials, context: Context, navController: NavHostController, mainViewModel: MainViewModel, loginViewModel: LoginViewModel): Boolean {
     Log.println(Log.INFO,"Credentials", "User ${creds.user}")
     Log.println(Log.INFO,"Credentials", "Pass ${creds.pwd.hashedWithSha256()}")
-
-    if (creds.isNotEmpty() && creds.user == "admin@gmail.com" && creds.pwd.hashedWithSha256() == "admin".hashedWithSha256() && !mainViewModel.isLoggedIn) {
-        if(!signIn) launchCatching(snackBarHostState, coroutineScope) {
-            authenticate(creds.user, creds.pwd.hashedWithSha256()) { result ->
-                Log.println(Log.INFO,"Authenticate", "Result: $result")
-            }
-        }
-        else
-            launchCatching(snackBarHostState, coroutineScope) {
-                linkAccount(creds.user, creds.pwd.hashedWithSha256()) { result ->
-                    Log.println(Log.INFO,"Authenticate", "Result: $result")
-                }
-            }
-
+    val result = loginViewModel.login(creds)
+    if (creds.isNotEmpty() && result != "" && !mainViewModel.isLoggedIn) {
         if (creds.remember) {
             Log.println(Log.INFO,"Credentials", "Saving password and username")
-            storePreference(context, creds.pwd.hashedWithSha256(), PASSWORD_PREFERENCE_KEY)
+            storePreference(context, result, PASSWORD_PREFERENCE_KEY)
             storePreference(context, creds.user, USERNAME_PREFERENCE_KEY)
         }
         mainViewModel.isLoggedIn = true
         mainViewModel.username = creds.user
-        mainViewModel.password = creds.pwd.hashedWithSha256()
+        mainViewModel.password = result
 
         navController.navigate(Screens.Index.name)
 
@@ -153,9 +135,8 @@ fun LoginView(navController: NavHostController, mainViewModel: MainViewModel) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentScreen = Screens.valueOf(backStackEntry?.destination?.route ?: Screens.Login.name)
     checkLoggedUser(context, navController, currentScreen, mainViewModel)
-    val snackBarHostState = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
-    var signIn by remember { mutableStateOf(true) }
+    val loginViewModel by remember { mutableStateOf(LoginViewModel()) }
 
     Column(
         verticalArrangement = Arrangement.Center,
@@ -173,7 +154,9 @@ fun LoginView(navController: NavHostController, mainViewModel: MainViewModel) {
             value = credentials.pwd,
             onChange = { data -> credentials = credentials.copy(pwd = data) },
             submit = {
-                coroutineScope.launch { if (!checkCredentials(credentials, context, navController, mainViewModel, snackBarHostState, coroutineScope, signIn)) credentials = Credentials() }
+                coroutineScope.launch {
+                    if (!checkCredentials(credentials, context, navController, mainViewModel, loginViewModel)) credentials = Credentials()
+                }
             },
             modifier = Modifier.fillMaxWidth()
         )
@@ -186,41 +169,20 @@ fun LoginView(navController: NavHostController, mainViewModel: MainViewModel) {
             isChecked = credentials.remember
         )
         Spacer(modifier = Modifier.height(20.dp))
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        if (!checkCredentials(
-                                credentials,
-                                context,
-                                navController,
-                                mainViewModel,
-                                snackBarHostState,
-                                coroutineScope,
-                                signIn
-                            )
-                        ) credentials = Credentials()
-                    }
-                },
-                enabled = credentials.isNotEmpty() && !signIn,
-                shape = RoundedCornerShape(20.dp),
-                modifier = Modifier.fillMaxWidth(0.5f),
-            ) {
-                Text("Login")
-            }
-            if (signIn)
-                Button(
-                    onClick = {
-                        coroutineScope.launch { if (!checkCredentials(credentials, context, navController, mainViewModel, snackBarHostState, coroutineScope, signIn)) credentials = Credentials() }
-                    },
-                    enabled = credentials.isNotEmpty(),
-                    shape = RoundedCornerShape(20.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Sign up")
+        Button(
+            onClick = {
+                coroutineScope.launch {
+                    if (!checkCredentials(credentials, context, navController, mainViewModel, loginViewModel)) credentials = Credentials()
                 }
+            },
+            enabled = credentials.isNotEmpty(),
+            shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.fillMaxWidth(0.5f),
+        ) {
+            Text("Login")
         }
     }
+
 }
 
 @Preview(showBackground = true, showSystemUi = true)

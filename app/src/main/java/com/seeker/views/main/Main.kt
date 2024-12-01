@@ -1,6 +1,10 @@
 package com.seeker.views.main
 
+import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -39,12 +43,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.google.android.play.core.install.InstallStateUpdatedListener
-import com.google.android.play.core.install.model.InstallStatus
-import com.seeker.activities.appUpdateManager
-import com.seeker.activities.listener
+import com.seeker.activities.client
 import com.seeker.data.NavigationItems
 import com.seeker.datastores.PASSWORD_PREFERENCE_KEY
 import com.seeker.datastores.USERNAME_PREFERENCE_KEY
@@ -58,6 +58,15 @@ import com.seeker.views.login.navigateAndReplaceStartRoute
 import com.seeker.views.qrscanner.QrScannerView
 import com.seeker.views.screens.Screens
 import com.seeker.views.topbar.AppBar
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpResponseValidator
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.request.header
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.launch
 
 class MainViewModel : ViewModel() {
@@ -80,8 +89,20 @@ private fun getCurrentScreen(backStackEntry: NavBackStackEntry?): Screens {
     }
 }
 
+private fun navigateItems(mainViewModel: MainViewModel, navController: NavHostController, currentScreen: Screens, screen: String){
+    if (!mainViewModel.isLoggedIn)
+        if (currentScreen.title != Screens.Login.title)
+            navController.navigate(Screens.Login.name)
+        else if (currentScreen.title == Screens.Login.title)
+            navController.navigateAndReplaceStartRoute(Screens.Login.name)
+        else {
+            if (currentScreen.title != Screens.Index.title)
+                navController.navigate(screen)
+        }
+}
+
 @Composable
-fun MainView(navController: NavHostController = rememberNavController()) {
+fun MainView(navController: NavHostController, mainContext: Context) {
     // Get current back stack entry
     val backStackEntry by navController.currentBackStackEntryAsState()
     // Get the name of the current screen
@@ -92,6 +113,32 @@ fun MainView(navController: NavHostController = rememberNavController()) {
     val context = LocalContext.current
     val width = LocalConfiguration.current.screenWidthDp
 
+    client = HttpClient(CIO){
+        install(Logging) {
+            level = LogLevel.ALL
+        }
+        install(ContentNegotiation){
+            json()
+        }
+        HttpResponseValidator {
+            validateResponse { response ->
+                if (response.status.value == 403) {
+                    Handler(Looper.getMainLooper()).post {
+                        Toast.makeText(mainContext, "JWT has expired, log in again", Toast.LENGTH_SHORT).show()
+                    }
+                    mainViewModel.password = ""
+                    mainViewModel.isLoggedIn = false
+                    mainViewModel.username = ""
+                    navController.navigate(Screens.Login.name)
+                    navController.navigateAndReplaceStartRoute(Screens.Login.name)
+                }
+            }
+        }
+        defaultRequest {
+            header("jwt", mainViewModel.password)
+        }
+    }
+
     ///List of Navigation Items that will be clicked
     val items = listOf(
         NavigationItems(
@@ -100,15 +147,7 @@ fun MainView(navController: NavHostController = rememberNavController()) {
             unselectedIcon = Icons.Outlined.Home,
             route = Screens.Index.title,
             onClick = {
-                if (!mainViewModel.isLoggedIn)
-                    if (currentScreen.title != Screens.Login.title)
-                        navController.navigate(Screens.Login.name)
-                else if (currentScreen.title == Screens.Login.title)
-                    navController.navigateAndReplaceStartRoute(Screens.Login.name)
-                else {
-                    if (currentScreen.title != Screens.Index.title)
-                        navController.navigate(Screens.Index.name)
-                }
+                navigateItems(mainViewModel, navController, currentScreen, Screens.Index.name)
             }
         ),
 //        NavigationItems(
@@ -143,43 +182,6 @@ fun MainView(navController: NavHostController = rememberNavController()) {
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-
-    val snackBarHostState = LocalSnackbarHostState.current
-    val coroutineScope = rememberCoroutineScope()
-
-    // Create a listener to track request state updates.
-    listener = InstallStateUpdatedListener { state ->
-        if (state.installStatus() == InstallStatus.DOWNLOADING) {
-            val bytesDownloaded = state.bytesDownloaded()
-            val totalBytesToDownload = state.totalBytesToDownload()
-            Log.println(Log.DEBUG, "inAppUpdates", "bytesDownloaded $bytesDownloaded / $totalBytesToDownload")
-            // Update UI to show download progress.
-        } else if (state.installStatus() == InstallStatus.DOWNLOADED) {
-            Log.println(Log.DEBUG, "inAppUpdates","Update is downloaded and ready to install")
-            // Notify the user and request installation.
-            coroutineScope.launch {
-                snackBarHostState.showSnackbar("An update has just been downloaded.")
-            }
-        } else if (state.installStatus() == InstallStatus.INSTALLING) {
-            Log.println(Log.DEBUG, "inAppUpdates","Update is being installed")
-            // Update UI to show installation progress.
-        } else if (state.installStatus() == InstallStatus.INSTALLED) {
-            Log.println(Log.DEBUG, "inAppUpdates","Update is installed")
-            // Notify the user and perform any necessary actions.
-            coroutineScope.launch {
-                snackBarHostState.showSnackbar("Update is installed")
-            }
-        } else if (state.installStatus() == InstallStatus.FAILED) {
-            Log.println(Log.DEBUG, "inAppUpdates","Update failed to install")
-            // Notify the user and handle the error.
-            coroutineScope.launch {
-                snackBarHostState.showSnackbar("Update failed to install")
-            }
-        }
-    }
-
-    // Before starting an update, register a listener for updates.
-    appUpdateManager.registerListener(listener)
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -246,7 +248,7 @@ fun MainView(navController: NavHostController = rememberNavController()) {
                     LoginView(navController = navController, mainViewModel = mainViewModel)
                 }
                 composable(route = Screens.Index.name) {
-                    IndexView(navController = navController)
+                    IndexView(navController = navController, mainViewModel = mainViewModel)
                 }
                 composable(route = Screens.QR.name) {
                     QrScannerView(navController = navController)
@@ -258,7 +260,7 @@ fun MainView(navController: NavHostController = rememberNavController()) {
                 )) { navBackStackEntry ->
                     /* Extracting the id from the route */
                     val setId = navBackStackEntry.arguments?.getInt("setId")
-                    DetailsView(navController = navController, setId = setId)
+                    DetailsView(navController = navController, mainViewModel = mainViewModel, setId = setId)
                 }
                 composable(route = Screens.Categories.name) {
                     CategoriesView(navController = navController)
