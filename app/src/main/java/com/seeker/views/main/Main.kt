@@ -44,13 +44,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import androidx.room.Room
 import com.seeker.activities.client
 import com.seeker.data.NavigationItems
+import com.seeker.database.AssetDatabase
+import com.seeker.database.repositories.AssetRepositoryImpl
 import com.seeker.datastores.PASSWORD_PREFERENCE_KEY
 import com.seeker.datastores.USERNAME_PREFERENCE_KEY
 import com.seeker.datastores.storePreference
 import com.seeker.ui.theme.LocalSnackbarHostState
-import com.seeker.views.categories.CategoriesView
 import com.seeker.views.details.DetailsView
 import com.seeker.views.index.IndexView
 import com.seeker.views.login.LoginView
@@ -69,7 +71,9 @@ import io.ktor.client.request.header
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.launch
 
-class MainViewModel : ViewModel() {
+class MainViewModel(context: Context) : ViewModel() {
+    private var assetDB = Room.databaseBuilder(context, AssetDatabase::class.java, "AssetDatabase").build()
+    var repo = AssetRepositoryImpl(assetDB.dao)
     var isLoggedIn = false
     var username = ""
     var password = ""
@@ -90,15 +94,12 @@ private fun getCurrentScreen(backStackEntry: NavBackStackEntry?): Screens {
 }
 
 private fun navigateItems(mainViewModel: MainViewModel, navController: NavHostController, currentScreen: Screens, screen: String){
-    if (!mainViewModel.isLoggedIn)
+    if (!mainViewModel.isLoggedIn) {
         if (currentScreen.title != Screens.Login.title)
-            navController.navigate(Screens.Login.name)
-        else if (currentScreen.title == Screens.Login.title)
             navController.navigateAndReplaceStartRoute(Screens.Login.name)
-        else {
-            if (currentScreen.title != Screens.Index.title)
-                navController.navigate(screen)
-        }
+        else if (currentScreen.name != screen && mainViewModel.isLoggedIn) navController.navigate(screen)
+    }
+    else if (currentScreen.name != screen) navController.navigate(screen)
 }
 
 @Composable
@@ -108,9 +109,9 @@ fun MainView(navController: NavHostController, mainContext: Context) {
     // Get the name of the current screen
     val currentScreen = getCurrentScreen(backStackEntry)
     val snackbarHostState = LocalSnackbarHostState.current
-    val mainViewModel by remember { mutableStateOf(MainViewModel()) }
-    val startDestination = if(!mainViewModel.isLoggedIn) Screens.Login.name else Screens.Index.name
     val context = LocalContext.current
+    val mainViewModel by remember { mutableStateOf(MainViewModel(context)) }
+    val startDestination = if(!mainViewModel.isLoggedIn) Screens.Login.name else Screens.Index.name
     val width = LocalConfiguration.current.screenWidthDp
 
     client = HttpClient(CIO){
@@ -251,7 +252,7 @@ fun MainView(navController: NavHostController, mainContext: Context) {
                     IndexView(navController = navController, mainViewModel = mainViewModel)
                 }
                 composable(route = Screens.QR.name) {
-                    QrScannerView(navController = navController)
+                    QrScannerView(navController = navController, mainViewModel = mainViewModel)
                 }
                 composable(route = "${Screens.Details.name}/{setId}", arguments = listOf(
                     navArgument("setId") {
@@ -261,9 +262,6 @@ fun MainView(navController: NavHostController, mainContext: Context) {
                     /* Extracting the id from the route */
                     val setId = navBackStackEntry.arguments?.getInt("setId")
                     DetailsView(navController = navController, mainViewModel = mainViewModel, setId = setId)
-                }
-                composable(route = Screens.Categories.name) {
-                    CategoriesView(navController = navController)
                 }
             }
         }

@@ -1,5 +1,6 @@
 package com.seeker.views.qrscanner
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.CopyAll
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
@@ -23,8 +25,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -36,6 +40,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -49,12 +54,17 @@ import androidx.navigation.compose.rememberNavController
 import com.seeker.R
 import com.seeker.ui.theme.LocalSnackbarHostState
 import com.seeker.ui.theme.SeekerTheme
+import com.seeker.views.login.navigateAndReplaceStartRoute
+import com.seeker.views.main.MainViewModel
 import com.seeker.views.screens.Screens
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import qrscanner.CameraLens
 import qrscanner.QrScanner
 
 @Composable
-fun QrScannerView(navController: NavHostController) {
+fun QrScannerView(navController: NavHostController, mainViewModel: MainViewModel) {
     var qrCodeURL by rememberSaveable { mutableStateOf("") }
     var flashlightOn by rememberSaveable { mutableStateOf(false) }
     var openImagePicker by rememberSaveable { mutableStateOf(value = false) }
@@ -62,6 +72,12 @@ fun QrScannerView(navController: NavHostController) {
     val coroutineScope = rememberCoroutineScope()
     val clipboardManager: ClipboardManager = LocalClipboardManager.current
     val width = LocalConfiguration.current.screenWidthDp
+    var cameraLensFront by remember { mutableStateOf(false) }
+    var cameraLens by remember { mutableStateOf(CameraLens.Back) }
+
+    LaunchedEffect(mainViewModel) {
+        if (!mainViewModel.isLoggedIn) navController.navigateAndReplaceStartRoute(Screens.Login.name)
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -76,8 +92,12 @@ fun QrScannerView(navController: NavHostController) {
                     .size(width.dp)
                     .clip(shape = RoundedCornerShape(size = 14.dp))
                     .clipToBounds()
-                    .padding((width/10).dp)
-                    .border(2.dp, MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(size = 14.dp)),
+                    .padding((width / 10).dp)
+                    .border(
+                        2.dp,
+                        MaterialTheme.colorScheme.primaryContainer,
+                        RoundedCornerShape(size = 14.dp)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 QrScanner(
@@ -87,8 +107,13 @@ fun QrScannerView(navController: NavHostController) {
                     flashlightOn = flashlightOn,
                     openImagePicker = openImagePicker,
                     onCompletion = {
-                        qrCodeURL = it
-                        navController.navigate("${Screens.Details.name}/4")
+                        Log.println(Log.DEBUG,"QrScanner/qrCodeURL", it)
+                        if (it.matches(Regex("\\d+"))) {
+                            qrCodeURL = it
+                            coroutineScope.launch {
+                                navController.navigate("${Screens.Details.name}/${it}")
+                            }
+                        }
                     },
                     imagePickerHandler = {
                         openImagePicker = it
@@ -101,7 +126,8 @@ fun QrScannerView(navController: NavHostController) {
                                 snackBarHostState.showSnackbar(it)
                             }
                         }
-                    }
+                    },
+                    cameraLens = cameraLens,
                 )
             }
 
@@ -111,7 +137,8 @@ fun QrScannerView(navController: NavHostController) {
                     .background(
                         color = MaterialTheme.colorScheme.primaryContainer,
                         shape = RoundedCornerShape(25.dp)
-                    ).height(35.dp),
+                    )
+                    .height(35.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Row(
@@ -128,6 +155,25 @@ fun QrScannerView(navController: NavHostController) {
                                 flashlightOn = !flashlightOn
                             },
                         tint = if (flashlightOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
+                    )
+
+                    VerticalDivider(
+                        modifier = Modifier,
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Icon(
+                        imageVector = Icons.Filled.Cameraswitch,
+                        "flash",
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clickable {
+                                cameraLensFront = !cameraLensFront
+                                if (!cameraLensFront) cameraLens = CameraLens.Back
+                                if (cameraLensFront) cameraLens = CameraLens.Front
+                            },
+                        tint = if (cameraLensFront) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
                     )
 
                     VerticalDivider(
@@ -173,9 +219,11 @@ fun QrScannerView(navController: NavHostController) {
                 Icon(
                     Icons.Filled.CopyAll,
                     "CopyAll",
-                    modifier = Modifier.size(20.dp).clickable {
-                        clipboardManager.setText(AnnotatedString((qrCodeURL)))
-                    },
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clickable {
+                            clipboardManager.setText(AnnotatedString((qrCodeURL)))
+                        },
                     tint = MaterialTheme.colorScheme.secondary
                 )
             }
@@ -187,7 +235,9 @@ fun QrScannerView(navController: NavHostController) {
 @Composable
 fun QrScannerViewPreview() {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val mainViewModel = MainViewModel(context)
     SeekerTheme {
-        QrScannerView(navController = navController)
+        QrScannerView(navController = navController, mainViewModel = mainViewModel)
     }
 }

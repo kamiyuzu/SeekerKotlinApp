@@ -24,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -65,7 +66,9 @@ import com.seeker.sharemanager.ShareFileModel
 import com.seeker.sharemanager.rememberShareManager
 import com.seeker.ui.theme.LocalSnackbarHostState
 import com.seeker.ui.theme.SeekerTheme
+import com.seeker.views.login.navigateAndReplaceStartRoute
 import com.seeker.views.main.MainViewModel
+import com.seeker.views.screens.Screens
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
@@ -315,7 +318,8 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
 @Composable
 fun DetailsViewPreview() {
     val navController = rememberNavController()
-    val mainViewModel = MainViewModel()
+    val context = LocalContext.current
+    val mainViewModel = MainViewModel(context)
     SeekerTheme {
         DetailsView(navController = navController, mainViewModel = mainViewModel, setId = 1)
     }

@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -134,7 +135,9 @@ fun LoginView(navController: NavHostController, mainViewModel: MainViewModel) {
     val context = LocalContext.current
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentScreen = Screens.valueOf(backStackEntry?.destination?.route ?: Screens.Login.name)
-    checkLoggedUser(context, navController, currentScreen, mainViewModel)
+    LaunchedEffect(credentials) {
+        checkLoggedUser(context, navController, currentScreen, mainViewModel)
+    }
     val coroutineScope = rememberCoroutineScope()
     val loginViewModel by remember { mutableStateOf(LoginViewModel()) }
 
@@ -189,7 +192,8 @@ fun LoginView(navController: NavHostController, mainViewModel: MainViewModel) {
 @Composable
 fun LoginViewPreview() {
     val navController = rememberNavController()
-    val mainViewModel = MainViewModel()
+    val context = LocalContext.current
+    val mainViewModel = MainViewModel(context)
     SeekerTheme {
         LoginView(navController = navController, mainViewModel = mainViewModel)
     }
@@ -199,7 +203,8 @@ fun LoginViewPreview() {
 @Composable
 fun LoginViewDarkPreview() {
     val navController = rememberNavController()
-    val mainViewModel = MainViewModel()
+    val context = LocalContext.current
+    val mainViewModel = MainViewModel(context)
     SeekerTheme(darkTheme = true) {
         LoginView(navController = navController, mainViewModel = mainViewModel)
     }
