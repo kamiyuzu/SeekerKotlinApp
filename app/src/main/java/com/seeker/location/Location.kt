@@ -95,6 +95,8 @@ fun getLastUserLocation(
                 location?.let {
                     // If location is not null, invoke the success callback with latitude and longitude
                     onGetLastLocationSuccess(Pair(it.latitude, it.longitude))
+                } ?: run {
+                    onGetLastLocationIsNull()
                 }
             }
             .addOnFailureListener { exception ->

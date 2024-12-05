@@ -70,6 +70,7 @@ import com.seeker.views.login.navigateAndReplaceStartRoute
 import com.seeker.views.main.MainViewModel
 import com.seeker.views.screens.Screens
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -198,24 +199,6 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
     val context = LocalContext.current
     fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
 
-    val width = LocalConfiguration.current.screenWidthDp
-    //val height = LocalConfiguration.current.screenHeightDp
-    val borderWidth = 10.dp
-    val rainbowColorsBrush = remember {
-        Brush.sweepGradient(
-            listOf(
-                Color(0xFF9575CD),
-                Color(0xFFBA68C8),
-                Color(0xFFE57373),
-                Color(0xFFFFB74D),
-                Color(0xFFFFF176),
-                Color(0xFFAED581),
-                Color(0xFF4DD0E1),
-                Color(0xFF9575CD)
-            )
-        )
-    }
-
     // State variables to manage location information and permission result text
     var locationText by remember { mutableStateOf("No location obtained :(") }
     var latitude by remember { mutableDoubleStateOf(0.0) }
@@ -238,41 +221,38 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
                     latitude = it.first
                     longitude = it.second
                     Log.println(Log.DEBUG, "LocationServices", "Location using LAST-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}")
-                    coroutineScope.launch {
+                    coroutineScope.launch(Dispatchers.IO) {
                         detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId")
-                        snackBarHostState.showSnackbar("Success getting last location ✅")
+                        snackBarHostState.showSnackbar("Success getting current location ✅")
                     }
-                    locationText =
-                        "Location using LAST-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}"
+                    locationText = "Location using LAST-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}"
                 },
                 onGetLastLocationFailed = { exception ->
                     showPermissionResultText = true
                     Log.println(Log.DEBUG, "LocationServices", exception.localizedMessage ?: "Error getting last location")
                     coroutineScope.launch {
-                        snackBarHostState.showSnackbar("Error getting last location 🚧")
+                        snackBarHostState.showSnackbar("Error getting current location 🚧")
                     }
-                    locationText =
-                        exception.localizedMessage ?: "Error getting last location 🚧"
+                    locationText = exception.localizedMessage ?: "Error getting current location 🚧"
                 },
                 onGetLastLocationIsNull = {
                     // Attempt to get the current user location
                     getCurrentLocation(
                         onGetCurrentLocationSuccess = {
                             Log.println(Log.DEBUG, "LocationServices", "Location using CURRENT-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}")
-                            coroutineScope.launch {
+                            coroutineScope.launch(Dispatchers.IO) {
                                 detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId")
-                                snackBarHostState.showSnackbar("Success getting current location ✅")
+                                snackBarHostState.showSnackbar("Success getting last location ✅")
                             }
-                            locationText =
-                                "Location using CURRENT-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}"
+                            locationText = "Location using CURRENT-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}"
                         },
                         onGetCurrentLocationFailed = {
                             showPermissionResultText = true
                             Log.println(Log.DEBUG, "LocationServices", it.localizedMessage ?: "Error Getting Current Location")
                             coroutineScope.launch {
-                                snackBarHostState.showSnackbar("Error getting current location 🚧")
+                                snackBarHostState.showSnackbar("Error getting last location 🚧")
                             }
-                            locationText = it.localizedMessage ?: "Error getting current location 🚧"
+                            locationText = it.localizedMessage ?: "Error getting last location 🚧"
                         },
                         true,
                         context

@@ -1,6 +1,7 @@
 package com.seeker.datastores
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -14,7 +15,10 @@ val PASSWORD_PREFERENCE_KEY: Preferences.Key<String> = stringPreferencesKey("pas
 val USERNAME_PREFERENCE_KEY: Preferences.Key<String> = stringPreferencesKey("username")
 
 private suspend fun doStorePreference(context: Context, password: String, preferencesKey: Preferences.Key<String>) {
-    context.dataStore.edit { settings -> settings[preferencesKey] = password }
+    context.dataStore.edit { settings ->
+        Log.println(Log.DEBUG,"doStorePreference", "Storing: $password with preferenceKey: $preferencesKey")
+        settings[preferencesKey] = password
+    }
 }
 
 fun storePreference(context: Context, password: String, preferencesKey: Preferences.Key<String>) {
@@ -22,6 +26,7 @@ fun storePreference(context: Context, password: String, preferencesKey: Preferen
 }
 
 private suspend fun doReadPreference(context: Context, preferencesKey: Preferences.Key<String>): String {
+    Log.println(Log.DEBUG,"doReadPreference", "Reading preferenceKey: $preferencesKey")
     val preferences = context.dataStore.data.first()
     return preferences[preferencesKey].orEmpty()
 }

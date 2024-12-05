@@ -40,13 +40,13 @@ suspend fun login(username: String, password: String): String {
                     contentType(ContentType.Application.Json)
                     setBody(LoginRequest(username, password))
                 }
-                Log.println(Log.INFO,"Backend Login", "Login unexpected error: $response")
+                Log.println(Log.DEBUG,"Backend Login", "Login unexpected error: $response")
                 if (response.status.value == 400) Log.println(Log.INFO,"Backend Login", "Login unexpected error: " + response.body<Any?>().toString())
                 val loginResultOk = response.body<LoginResultOk>()
                 loginResultOk.token
             } catch (e: Exception) {
                 // Handle the error (e.g., logging or returning default data)
-                Log.println(Log.INFO,"Backend Login", "Error ${e.stackTraceToString()}")
+                Log.println(Log.DEBUG,"Backend Login", "Error ${e.stackTraceToString()}")
                 throw RuntimeException(e)
             }
         }
@@ -61,13 +61,13 @@ suspend fun index(username: String): List<AssetResult> {
                 val response = client.get("$backendUrl/api/users/$username/assets") {
                     contentType(ContentType.Application.Json)
                 }
-                Log.println(Log.INFO,"Index Login", "Login unexpected error: $response")
-                if (response.status.value == 400) Log.println(Log.INFO,"Backend Index", "Index unexpected error: " + response.body<Any?>().toString())
+                Log.println(Log.DEBUG,"Index Login", "Login unexpected error: $response")
+                if (response.status.value == 400) Log.println(Log.DEBUG,"Backend Index", "Index unexpected error: " + response.body<Any?>().toString())
                 val indexResultOk = response.body<IndexResultOk>()
                 indexResultOk.data
             } catch (e: Exception) {
                 // Handle the error (e.g., logging or returning default data)
-                Log.println(Log.INFO,"Backend Index", "Error ${e.stackTraceToString()}")
+                Log.println(Log.DEBUG,"Backend Index", "Error ${e.stackTraceToString()}")
                 throw RuntimeException(e)
             }
         }
@@ -83,12 +83,12 @@ suspend fun assetPost(username: String, latitude: String, longitude: String, set
                     contentType(ContentType.Application.Json)
                     setBody(Asset(username, set, latitude, longitude))
                 }
-                if (response.status.value == 400) Log.println(Log.INFO,"Backend Asset post", "Asset post unexpected error: " + response.body<Any?>().toString())
+                if (response.status.value == 400) Log.println(Log.DEBUG,"Backend Asset post", "Asset post unexpected error: " + response.body<Any?>().toString())
                 val assetResultOk = response.body<AssetResultOk>()
                 assetResultOk.data
             } catch (e: Exception) {
                 // Handle the error (e.g., logging or returning default data)
-                Log.println(Log.INFO,"Backend Asset Post", "Error ${e.stackTraceToString()}")
+                Log.println(Log.DEBUG,"Backend Asset Post", "Error ${e.stackTraceToString()}")
                 throw RuntimeException(e)
             }
         }

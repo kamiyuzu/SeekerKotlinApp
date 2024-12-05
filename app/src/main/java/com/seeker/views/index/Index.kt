@@ -87,30 +87,38 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class IndexViewModel(): ViewModel() {
+class IndexViewModel(mainViewModel: MainViewModel): ViewModel() {
     private var _assetList = MutableStateFlow(emptyList<AssetResult>())
     var assetList = _assetList.asStateFlow()
 
-    suspend fun fetchIndex(mainViewModel: MainViewModel) {
-        try {
-            val assets = index(mainViewModel.username)
-            Log.println(Log.DEBUG,"IndexViewModel/fetchIndex", "Assets ${assets}")
-            assets.forEach { asset ->
-                Log.println(Log.DEBUG,"IndexViewModel/fetchIndex", "asset $asset")
-                val insertResponse = mainViewModel.repo.insert(AssetEntity(id = asset.id.toInt(), username = asset.username, latitude = asset.latitude, longitude = asset.longitude, set = asset.set))
-                Log.println(Log.DEBUG,"IndexViewModel/fetchIndex", "insert_response $insertResponse")
-            }
-            _assetList.tryEmit(assets)
-        } catch (e: Exception) {
-            // Handle exceptions (like network failure)
-            Log.println(Log.INFO,"IndexViewModel/fetchIndex", "Error ${e.stackTraceToString()}")
+    init {
+        viewModelScope.launch {
+            fetchIndex(mainViewModel)
+        }
+    }
+
+    private fun fetchIndex(mainViewModel: MainViewModel) {
+        viewModelScope.launch {
+            try {
+                val assets = index(mainViewModel.username)
+                Log.println(Log.DEBUG,"IndexViewModel/fetchIndex", "Assets ${assets}")
+                assets.forEach { asset ->
+                    Log.println(Log.DEBUG,"IndexViewModel/fetchIndex", "asset $asset")
+                    val insertResponse = mainViewModel.repo.insert(AssetEntity(id = asset.id.toInt(), username = asset.username, latitude = asset.latitude, longitude = asset.longitude, set = asset.set))
+                    Log.println(Log.DEBUG,"IndexViewModel/fetchIndex", "insert_response $insertResponse")
+                }
+                _assetList.tryEmit(assets)
+            } catch (e: Exception) {
+                // Handle exceptions (like network failure)
+                Log.println(Log.INFO,"IndexViewModel/fetchIndex", "Error ${e.stackTraceToString()}")
                 mainViewModel.repo.getAllAssets().flowOn(IO).collect {
                     val assetResultList = it.map { assetIt ->
-                         AssetResult(assetIt.id.toString(), assetIt.username, assetIt.set, assetIt.latitude, assetIt.longitude)
+                        AssetResult(assetIt.id.toString(), assetIt.username, assetIt.set, assetIt.latitude, assetIt.longitude)
                     }
                     _assetList.value = assetResultList
                 }
             }
+        }
     }
 }
 
@@ -120,13 +128,7 @@ fun IndexView(navController: NavHostController, mainViewModel: MainViewModel) {
     val context = LocalContext.current
     var hasRequestedPermission by rememberSaveable { mutableStateOf(false) }
     var permissionRequestCompleted by rememberSaveable { mutableStateOf(false) }
-    val indexViewModel by remember { mutableStateOf(IndexViewModel()) }
-    val assets: List<AssetResult> by indexViewModel.assetList.collectAsState()
-    LaunchedEffect(key1 = true, block = {
-        // we will get the student details when ever the screen is created
-        // Launched effect is a side effect
-        indexViewModel.fetchIndex(mainViewModel)
-    })
+    val assets: List<AssetResult> by IndexViewModel(mainViewModel).assetList.collectAsState()
 //    val carouselMultiBrowseState = rememberCarouselState(itemCount = { indexViewModel.assets.size }, initialItem = 0)
 //    val heigth = LocalConfiguration.current.screenHeightDp
 
