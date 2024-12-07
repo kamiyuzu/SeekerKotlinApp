@@ -35,8 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -47,6 +45,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import coil3.Bitmap
@@ -85,8 +84,8 @@ class DetailsViewModel(): ViewModel() {
             return assetPost(username, latitudeParsed, longitudeParsed, set)
         } catch (e: Exception) {
             // Handle exceptions (like network failure)
-            Log.println(Log.INFO,"LoginViewModel/login", "Error ${e.stackTraceToString()}")
-            return AssetResult("", "", "", "", "")
+            Log.println(Log.DEBUG,"LoginViewModel/login", "Error ${e.stackTraceToString()}")
+            return AssetResult("", "", "", "", "", "", "")
         }
     }
 }
@@ -118,8 +117,22 @@ fun Share(text: String, context: Context, scope: CoroutineScope, imgBitmap: Bitm
     }
 }
 
+private fun setToCategoryName(setId: Int?): String {
+    var categoryName = ""
+    if (setId == 1) categoryName = "Robot whole body"
+    if (setId == 2) categoryName = "Monster whole body"
+    if (setId == 3) categoryName = "Robot head"
+    if (setId == 4) categoryName = "Cat"
+    if (setId == 5) categoryName = "Human technician"
+    return categoryName
+}
+
+private fun setSharableText(setId: Int?, name: String, description: String): String {
+    return "The asset: $name from category: ${setToCategoryName(setId)}.\n\nDescription: $description"
+}
+
 @Composable
-fun AssetView(modifier: Modifier = Modifier, latitude: Double, longitude: Double, setId: Int?){
+fun AssetView(modifier: Modifier = Modifier, latitude: Double, longitude: Double, setId: Int?, name: String, description: String) {
     val width = LocalConfiguration.current.screenWidthDp
     val borderWidth = 10.dp
     var imgBitmap by remember { mutableStateOf<Bitmap?>(null) }
@@ -143,7 +156,7 @@ fun AssetView(modifier: Modifier = Modifier, latitude: Double, longitude: Double
                 horizontalArrangement = Arrangement.Absolute.Right
             ) {
                 Share(
-                    "https://robohash.org/${String.format(Locale.getDefault(), "%.3f", latitude)},${String.format(Locale.getDefault(), "%.3f", longitude)}?set=set${setId}",
+                    setSharableText(setId, name, description),
                     LocalContext.current,
                     coroutineScope,
                     imgBitmap
@@ -157,10 +170,6 @@ fun AssetView(modifier: Modifier = Modifier, latitude: Double, longitude: Double
                 contentDescription = null,
                 modifier = Modifier
                     .size(width.dp)
-//                        .border(
-//                            BorderStroke(borderWidth, rainbowColorsBrush),
-//                            CircleShape
-//                        )
                     .padding(borderWidth)
                     .clip(CircleShape),
                 contentScale = ContentScale.Fit,
@@ -175,15 +184,15 @@ fun AssetView(modifier: Modifier = Modifier, latitude: Double, longitude: Double
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {
                 Text(
-                    text = "Test name",
+                    text = name,
                     modifier = Modifier.padding(top = 8.dp),
                 )
                 Text(
-                    text = "Test description",
+                    text = setToCategoryName(setId),
                     modifier = Modifier.alpha(0.8f),
                 )
                 Text(
-                    text = "Test about",
+                    text = description,
                     modifier = Modifier
                         .padding(vertical = 12.dp)
                         .alpha(0.7f),
@@ -208,6 +217,12 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
     val snackBarHostState = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
     val detailsViewModel by remember { mutableStateOf(DetailsViewModel()) }
+    var name by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        if (!mainViewModel.isLoggedIn) navController.navigateAndReplaceStartRoute(Screens.Login.name)
+    }
 
     // Request location permission using a Compose function
     RequestLocationPermission(
@@ -222,7 +237,9 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
                     longitude = it.second
                     Log.println(Log.DEBUG, "LocationServices", "Location using LAST-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}")
                     coroutineScope.launch(Dispatchers.IO) {
-                        detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId")
+                        val result = detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId")
+                        name = result.name
+                        description = result.description
                         snackBarHostState.showSnackbar("Success getting current location ✅")
                     }
                     locationText = "Location using LAST-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}"
@@ -241,7 +258,9 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
                         onGetCurrentLocationSuccess = {
                             Log.println(Log.DEBUG, "LocationServices", "Location using CURRENT-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}")
                             coroutineScope.launch(Dispatchers.IO) {
-                                detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId")
+                                val result = detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId")
+                                name = result.name
+                                description = result.description
                                 snackBarHostState.showSnackbar("Success getting last location ✅")
                             }
                             locationText = "Location using CURRENT-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}"
@@ -289,8 +308,10 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
             .padding(horizontal = 30.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Spacer(modifier = Modifier.height(10.dp))
-        AssetView(Modifier, latitude, longitude, setId)
+        if (name.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(10.dp))
+            AssetView(Modifier, latitude, longitude, setId, name, description)
+        }
     }
 }
 
@@ -298,8 +319,7 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
 @Composable
 fun DetailsViewPreview() {
     val navController = rememberNavController()
-    val context = LocalContext.current
-    val mainViewModel = MainViewModel(context)
+    val mainViewModel = MainViewModel()
     SeekerTheme {
         DetailsView(navController = navController, mainViewModel = mainViewModel, setId = 1)
     }

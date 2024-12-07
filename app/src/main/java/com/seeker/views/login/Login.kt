@@ -1,8 +1,12 @@
 package com.seeker.views.login
 
 import android.content.Context
+import android.graphics.drawable.AdaptiveIconDrawable
+import android.os.Build
 import android.util.Log
 import android.widget.Toast
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -22,14 +26,23 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.ViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.seeker.R
 import com.seeker.data.Credentials
 import com.seeker.datastores.PASSWORD_PREFERENCE_KEY
 import com.seeker.datastores.USERNAME_PREFERENCE_KEY
@@ -129,17 +142,24 @@ private fun checkLoggedUser(context: Context, navController: NavHostController, 
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun LoginView(navController: NavHostController, mainViewModel: MainViewModel) {
     var credentials by remember { mutableStateOf(Credentials()) }
     val context = LocalContext.current
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentScreen = Screens.valueOf(backStackEntry?.destination?.route ?: Screens.Login.name)
-    LaunchedEffect(credentials) {
+    LaunchedEffect(Unit) {
         checkLoggedUser(context, navController, currentScreen, mainViewModel)
     }
     val coroutineScope = rememberCoroutineScope()
     val loginViewModel by remember { mutableStateOf(LoginViewModel()) }
+
+    val res = context.resources
+    val theme = context.theme
+    val adaptiveIcon = remember { ResourcesCompat.getDrawable(res, R.mipmap.ic_launcher_round, theme) as? AdaptiveIconDrawable }
+    val width = LocalConfiguration.current.screenWidthDp
+    val height = LocalConfiguration.current.screenHeightDp
 
     Column(
         verticalArrangement = Arrangement.Center,
@@ -148,6 +168,14 @@ fun LoginView(navController: NavHostController, mainViewModel: MainViewModel) {
             .fillMaxSize()
             .padding(horizontal = 30.dp)
     ) {
+        adaptiveIcon?.toBitmap(width = width, height = height/2)?.let { BitmapPainter(it.asImageBitmap()) }?.let {
+            Image(
+                modifier = Modifier.fillMaxWidth(),
+                painter = it,
+                contentDescription = "App icon",
+            )
+        }
+        Spacer(modifier = Modifier.height((height/12).dp))
         LoginField(
             value = credentials.user,
             onChange = { data -> credentials = credentials.copy(user = data) },
@@ -188,23 +216,23 @@ fun LoginView(navController: NavHostController, mainViewModel: MainViewModel) {
 
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun LoginViewPreview() {
     val navController = rememberNavController()
-    val context = LocalContext.current
-    val mainViewModel = MainViewModel(context)
+    val mainViewModel = MainViewModel()
     SeekerTheme {
         LoginView(navController = navController, mainViewModel = mainViewModel)
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun LoginViewDarkPreview() {
     val navController = rememberNavController()
-    val context = LocalContext.current
-    val mainViewModel = MainViewModel(context)
+    val mainViewModel = MainViewModel()
     SeekerTheme(darkTheme = true) {
         LoginView(navController = navController, mainViewModel = mainViewModel)
     }

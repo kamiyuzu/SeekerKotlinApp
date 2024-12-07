@@ -19,7 +19,7 @@ data class LoginResultOk(val token: String)
 data class LoginRequest(val username: String, val password: String)
 
 @Serializable
-data class AssetResult(val id: String, val username: String, val set: String, val latitude: String, val longitude: String)
+data class AssetResult(val id: String, val username: String, val set: String, val latitude: String, val longitude: String, val name: String, val description: String)
 
 @Serializable
 data class IndexResultOk(val data: List<AssetResult>)
@@ -40,7 +40,7 @@ suspend fun login(username: String, password: String): String {
                     contentType(ContentType.Application.Json)
                     setBody(LoginRequest(username, password))
                 }
-                Log.println(Log.DEBUG,"Backend Login", "Login unexpected error: $response")
+                Log.println(Log.DEBUG,"Backend Login", "Login response: $response")
                 if (response.status.value == 400) Log.println(Log.INFO,"Backend Login", "Login unexpected error: " + response.body<Any?>().toString())
                 val loginResultOk = response.body<LoginResultOk>()
                 loginResultOk.token
@@ -54,6 +54,27 @@ suspend fun login(username: String, password: String): String {
     return loginResult
 }
 
+suspend fun validateJWT(): String {
+    val loginResult: String =
+        withContext(Dispatchers.IO){
+            try {
+                val response = client.get("$backendUrl/api/users/validate") {
+                    contentType(ContentType.Application.Json)
+                }
+                Log.println(Log.DEBUG,"validateJWT", "validateJWT response: $response")
+                if (response.status.value == 400) Log.println(Log.INFO,"Backend Login", "Login unexpected error: " + response.body<Any?>().toString())
+                "valid"
+            } catch (e: Exception) {
+                // Handle the error (e.g., logging or returning default data)
+                Log.println(Log.DEBUG,"validateJWT", "Error ${e.stackTraceToString()}")
+                //throw RuntimeException(e)
+                ""
+            }
+        }
+    Log.println(Log.DEBUG,"validateJWT", "result: $loginResult")
+    return loginResult
+}
+
 suspend fun index(username: String): List<AssetResult> {
     val indexResultOk: List<AssetResult> =
         withContext(Dispatchers.IO){
@@ -61,7 +82,7 @@ suspend fun index(username: String): List<AssetResult> {
                 val response = client.get("$backendUrl/api/users/$username/assets") {
                     contentType(ContentType.Application.Json)
                 }
-                Log.println(Log.DEBUG,"Index Login", "Login unexpected error: $response")
+                Log.println(Log.DEBUG,"Index", "Index response: $response")
                 if (response.status.value == 400) Log.println(Log.DEBUG,"Backend Index", "Index unexpected error: " + response.body<Any?>().toString())
                 val indexResultOk = response.body<IndexResultOk>()
                 indexResultOk.data

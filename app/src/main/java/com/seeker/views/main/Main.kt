@@ -45,6 +45,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import androidx.room.Room
+import com.seeker.activities.MainActivity
 import com.seeker.activities.client
 import com.seeker.data.NavigationItems
 import com.seeker.database.AssetDatabase
@@ -71,12 +72,15 @@ import io.ktor.client.request.header
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.launch
 
-class MainViewModel(context: Context) : ViewModel() {
-    private var assetDB = Room.databaseBuilder(context, AssetDatabase::class.java, "AssetDatabase").build()
-    var repo = AssetRepositoryImpl(assetDB.dao)
+class MainViewModel: ViewModel() {
     var isLoggedIn = false
     var username = ""
     var password = ""
+}
+
+class DBViewModel(context: Context): ViewModel() {
+    private var assetDB = Room.databaseBuilder(context, AssetDatabase::class.java, "AssetDatabase").build()
+    var repo = AssetRepositoryImpl(assetDB.dao)
 }
 
 private fun getCurrentScreen(backStackEntry: NavBackStackEntry?): Screens {
@@ -103,14 +107,14 @@ private fun navigateItems(mainViewModel: MainViewModel, navController: NavHostCo
 }
 
 @Composable
-fun MainView(navController: NavHostController, mainContext: Context) {
+fun MainView(navController: NavHostController, mainContext: MainActivity, mainViewModel: MainViewModel) {
     // Get current back stack entry
     val backStackEntry by navController.currentBackStackEntryAsState()
     // Get the name of the current screen
     val currentScreen = getCurrentScreen(backStackEntry)
     val snackbarHostState = LocalSnackbarHostState.current
     val context = LocalContext.current
-    val mainViewModel by remember { mutableStateOf(MainViewModel(context)) }
+    val dBViewModel by remember { mutableStateOf(DBViewModel(context)) }
     val startDestination = if(!mainViewModel.isLoggedIn) Screens.Login.name else Screens.Index.name
     val width = LocalConfiguration.current.screenWidthDp
 
@@ -124,6 +128,7 @@ fun MainView(navController: NavHostController, mainContext: Context) {
         HttpResponseValidator {
             validateResponse { response ->
                 if (response.status.value == 403) {
+                    Log.println(Log.DEBUG, "HttpResponseValidator", response.toString())
                     Handler(Looper.getMainLooper()).post {
                         Toast.makeText(mainContext, "JWT has expired, log in again", Toast.LENGTH_SHORT).show()
                     }
@@ -151,17 +156,6 @@ fun MainView(navController: NavHostController, mainContext: Context) {
                 navigateItems(mainViewModel, navController, currentScreen, Screens.Index.name)
             }
         ),
-//        NavigationItems(
-//            title = "Info",
-//            selectedIcon = Icons.Filled.Info,
-//            unselectedIcon = Icons.Outlined.Info
-//        ),
-//        NavigationItems(
-//            title = "Edit",
-//            selectedIcon = Icons.Filled.Edit,
-//            unselectedIcon = Icons.Outlined.Edit,
-//            badgeCount = 105
-//        ),
         NavigationItems(
             title = "Log out",
             selectedIcon = Icons.AutoMirrored.Filled.Logout,
@@ -249,7 +243,7 @@ fun MainView(navController: NavHostController, mainContext: Context) {
                     LoginView(navController = navController, mainViewModel = mainViewModel)
                 }
                 composable(route = Screens.Index.name) {
-                    IndexView(navController = navController, mainViewModel = mainViewModel)
+                    IndexView(navController = navController, mainViewModel = mainViewModel, dBViewModel = dBViewModel)
                 }
                 composable(route = Screens.QR.name) {
                     QrScannerView(navController = navController, mainViewModel = mainViewModel)

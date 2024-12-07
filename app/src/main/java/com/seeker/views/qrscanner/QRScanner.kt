@@ -1,5 +1,7 @@
 package com.seeker.views.qrscanner
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -30,7 +32,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +50,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.seeker.R
@@ -57,25 +59,26 @@ import com.seeker.ui.theme.SeekerTheme
 import com.seeker.views.login.navigateAndReplaceStartRoute
 import com.seeker.views.main.MainViewModel
 import com.seeker.views.screens.Screens
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import qrscanner.CameraLens
 import qrscanner.QrScanner
 
 @Composable
 fun QrScannerView(navController: NavHostController, mainViewModel: MainViewModel) {
-    var qrCodeURL by rememberSaveable { mutableStateOf("") }
-    var flashlightOn by rememberSaveable { mutableStateOf(false) }
-    var openImagePicker by rememberSaveable { mutableStateOf(value = false) }
+    var qrCodeURL by remember { mutableStateOf("") }
+    var flashlightOn by remember { mutableStateOf(false) }
+    var openImagePicker by remember { mutableStateOf(value = false) }
     val snackBarHostState = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
     val clipboardManager: ClipboardManager = LocalClipboardManager.current
     val width = LocalConfiguration.current.screenWidthDp
     var cameraLensFront by remember { mutableStateOf(false) }
     var cameraLens by remember { mutableStateOf(CameraLens.Back) }
+    val context = LocalContext.current
+    var cameraAccess by remember { mutableStateOf(true) }
+    cameraAccess = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
 
-    LaunchedEffect(mainViewModel) {
+    LaunchedEffect(Unit) {
         if (!mainViewModel.isLoggedIn) navController.navigateAndReplaceStartRoute(Screens.Login.name)
     }
 
@@ -146,41 +149,44 @@ fun QrScannerView(navController: NavHostController, mainViewModel: MainViewModel
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = if (flashlightOn) Icons.Filled.FlashOn else Icons.Filled.FlashOff,
-                        "flash",
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clickable {
-                                flashlightOn = !flashlightOn
-                            },
-                        tint = if (flashlightOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
-                    )
+                    if (cameraAccess) {
+                        Icon(
+                            imageVector = if (flashlightOn) Icons.Filled.FlashOn else Icons.Filled.FlashOff,
+                            "flash",
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clickable {
+                                    flashlightOn = !flashlightOn
+                                },
+                            tint = if (flashlightOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
+                        )
 
-                    VerticalDivider(
-                        modifier = Modifier,
-                        thickness = 1.dp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
 
-                    Icon(
-                        imageVector = Icons.Filled.Cameraswitch,
-                        "flash",
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clickable {
-                                cameraLensFront = !cameraLensFront
-                                if (!cameraLensFront) cameraLens = CameraLens.Back
-                                if (cameraLensFront) cameraLens = CameraLens.Front
-                            },
-                        tint = if (cameraLensFront) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
-                    )
+                        VerticalDivider(
+                            modifier = Modifier,
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
 
-                    VerticalDivider(
-                        modifier = Modifier,
-                        thickness = 1.dp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                        Icon(
+                            imageVector = Icons.Filled.Cameraswitch,
+                            "flash",
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clickable {
+                                    cameraLensFront = !cameraLensFront
+                                    if (!cameraLensFront) cameraLens = CameraLens.Back
+                                    if (cameraLensFront) cameraLens = CameraLens.Front
+                                },
+                            tint = if (cameraLensFront) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
+                        )
+
+                        VerticalDivider(
+                            modifier = Modifier,
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
 
                     Image(
                         painter = painterResource(R.drawable.ic_gallery_icon),
@@ -235,8 +241,7 @@ fun QrScannerView(navController: NavHostController, mainViewModel: MainViewModel
 @Composable
 fun QrScannerViewPreview() {
     val navController = rememberNavController()
-    val context = LocalContext.current
-    val mainViewModel = MainViewModel(context)
+    val mainViewModel = MainViewModel()
     SeekerTheme {
         QrScannerView(navController = navController, mainViewModel = mainViewModel)
     }
