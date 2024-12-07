@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -94,6 +95,7 @@ fun IndexView(navController: NavHostController, mainViewModel: MainViewModel, dB
     var hasRequestedPermission by remember { mutableStateOf(false) }
     var permissionRequestCompleted by remember { mutableStateOf(false) }
     val assets: List<AssetResult> by IndexViewModel(mainViewModel, dBViewModel).assetList.collectAsState()
+    val height = LocalConfiguration.current.screenHeightDp
 
     LaunchedEffect(Unit) {
         if (!mainViewModel.isLoggedIn) navController.navigateAndReplaceStartRoute(Screens.Login.name)
@@ -130,7 +132,7 @@ fun IndexView(navController: NavHostController, mainViewModel: MainViewModel, dB
                         },
                     )
                 ){
-                    AssetView(Modifier, item.latitude.toDouble(), item.longitude.toDouble(), item.set.toInt(), item.name, item.description)
+                    AssetView(Modifier.height((height/4).dp), item.latitude.toDouble(), item.longitude.toDouble(), item.set.toInt(), item.name, item.description, false)
                 }
             }
         }
@@ -151,7 +153,6 @@ fun IndexView(navController: NavHostController, mainViewModel: MainViewModel, dB
                     // Request a permission
                     permissionLauncher.launch(Manifest.permission.CAMERA)
                     hasRequestedPermission = true
-                    navController.navigate(Screens.QR.name)
                 }
             },
             shape = CircleShape,

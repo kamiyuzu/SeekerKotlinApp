@@ -75,8 +75,7 @@ fun QrScannerView(navController: NavHostController, mainViewModel: MainViewModel
     var cameraLensFront by remember { mutableStateOf(false) }
     var cameraLens by remember { mutableStateOf(CameraLens.Back) }
     val context = LocalContext.current
-    var cameraAccess by remember { mutableStateOf(true) }
-    cameraAccess = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+    val cameraAccess by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) }
 
     LaunchedEffect(Unit) {
         if (!mainViewModel.isLoggedIn) navController.navigateAndReplaceStartRoute(Screens.Login.name)

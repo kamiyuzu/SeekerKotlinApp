@@ -45,7 +45,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import coil3.Bitmap
@@ -132,7 +131,7 @@ private fun setSharableText(setId: Int?, name: String, description: String): Str
 }
 
 @Composable
-fun AssetView(modifier: Modifier = Modifier, latitude: Double, longitude: Double, setId: Int?, name: String, description: String) {
+fun AssetView(modifier: Modifier, latitude: Double, longitude: Double, setId: Int?, name: String, description: String, extraInfo: Boolean = true) {
     val width = LocalConfiguration.current.screenWidthDp
     val borderWidth = 10.dp
     var imgBitmap by remember { mutableStateOf<Bitmap?>(null) }
@@ -147,10 +146,9 @@ fun AssetView(modifier: Modifier = Modifier, latitude: Double, longitude: Double
         Column(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.Start,
-            modifier = modifier.fillMaxSize()
+            modifier = Modifier
         ) {
             Row(modifier = Modifier
-                .fillMaxWidth()
                 .padding(10.dp),
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.Absolute.Right
@@ -187,17 +185,19 @@ fun AssetView(modifier: Modifier = Modifier, latitude: Double, longitude: Double
                     text = name,
                     modifier = Modifier.padding(top = 8.dp),
                 )
-                Text(
-                    text = setToCategoryName(setId),
-                    modifier = Modifier.alpha(0.8f),
-                )
-                Text(
-                    text = description,
-                    modifier = Modifier
-                        .padding(vertical = 12.dp)
-                        .alpha(0.7f),
-                    textAlign = TextAlign.Justify
-                )
+                if (extraInfo) {
+                    Text(
+                        text = setToCategoryName(setId),
+                        modifier = Modifier.alpha(0.8f),
+                    )
+                    Text(
+                        text = description,
+                        modifier = Modifier
+                            .padding(vertical = 12.dp)
+                            .alpha(0.7f),
+                        textAlign = TextAlign.Justify
+                    )
+                }
             }
         }
     }
@@ -219,6 +219,7 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
     val detailsViewModel by remember { mutableStateOf(DetailsViewModel()) }
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var assetCreated by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         if (!mainViewModel.isLoggedIn) navController.navigateAndReplaceStartRoute(Screens.Login.name)
@@ -237,9 +238,12 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
                     longitude = it.second
                     Log.println(Log.DEBUG, "LocationServices", "Location using LAST-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}")
                     coroutineScope.launch(Dispatchers.IO) {
-                        val result = detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId")
-                        name = result.name
-                        description = result.description
+                        if (!assetCreated) {
+                            val result = detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId")
+                            name = result.name
+                            description = result.description
+                            assetCreated = true
+                        }
                         snackBarHostState.showSnackbar("Success getting current location ✅")
                     }
                     locationText = "Location using LAST-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}"
@@ -258,9 +262,12 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
                         onGetCurrentLocationSuccess = {
                             Log.println(Log.DEBUG, "LocationServices", "Location using CURRENT-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}")
                             coroutineScope.launch(Dispatchers.IO) {
-                                val result = detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId")
-                                name = result.name
-                                description = result.description
+                                if (!assetCreated) {
+                                    val result = detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId")
+                                    name = result.name
+                                    description = result.description
+                                    assetCreated = true
+                                }
                                 snackBarHostState.showSnackbar("Success getting last location ✅")
                             }
                             locationText = "Location using CURRENT-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}"
