@@ -23,4 +23,10 @@ data class AssetEntity(
 
     @SerialName("longitude")
     val longitude: String = "",
+
+    @SerialName("name")
+    val name: String = "",
+
+    @SerialName("description")
+    val description: String = "",
     )
