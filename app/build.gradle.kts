@@ -24,6 +24,12 @@ android {
     }
 
     signingConfigs {
+        getByName("debug") {
+            storeFile = file("../KeyStore")
+            storePassword = "android"
+            keyAlias = "android"
+            keyPassword = "android"
+        }
         create("release"){
             keyAlias = "android"
             keyPassword = "android"
@@ -40,6 +46,9 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("release")
+        }
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
