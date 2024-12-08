@@ -103,11 +103,15 @@ dependencies {
 
     // Logger
     implementation(libs.slf4j.android)
+    implementation(libs.androidx.espresso.core)
 
     // Room database wrapper
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+
+    // WorkManager dependency
+    implementation(libs.androidx.work.runtime.ktx)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

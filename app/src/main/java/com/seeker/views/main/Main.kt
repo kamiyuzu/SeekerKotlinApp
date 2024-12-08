@@ -1,10 +1,12 @@
 package com.seeker.views.main
 
 import android.content.Context
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -61,6 +63,7 @@ import com.seeker.views.login.navigateAndReplaceStartRoute
 import com.seeker.views.qrscanner.QrScannerView
 import com.seeker.views.screens.Screens
 import com.seeker.views.topbar.AppBar
+import com.seeker.workers.WorkManagerSeekerRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpResponseValidator
@@ -81,6 +84,14 @@ class MainViewModel: ViewModel() {
 class DBViewModel(context: Context): ViewModel() {
     private var assetDB = Room.databaseBuilder(context, AssetDatabase::class.java, "AssetDatabase").build()
     var repo = AssetRepositoryImpl(assetDB.dao)
+}
+
+class JWTViewModel(context: Context, private val mainViewModel: MainViewModel): ViewModel() {
+    private val workManagerSeekerRepository = WorkManagerSeekerRepository(context)
+
+    fun validateJWT() {
+        if (mainViewModel.isLoggedIn) workManagerSeekerRepository.validateJWTWork()
+    }
 }
 
 private fun getCurrentScreen(backStackEntry: NavBackStackEntry?): Screens {
@@ -106,6 +117,7 @@ private fun navigateItems(mainViewModel: MainViewModel, navController: NavHostCo
     else if (currentScreen.name != screen) navController.navigate(screen)
 }
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU, Build.VERSION_CODES.O)
 @Composable
 fun MainView(navController: NavHostController, mainContext: MainActivity, mainViewModel: MainViewModel) {
     // Get current back stack entry

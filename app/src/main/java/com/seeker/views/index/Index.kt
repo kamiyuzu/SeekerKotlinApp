@@ -2,10 +2,12 @@ package com.seeker.views.index
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -46,6 +48,7 @@ import com.seeker.ui.theme.SeekerTheme
 import com.seeker.views.details.AssetView
 import com.seeker.views.login.navigateAndReplaceStartRoute
 import com.seeker.views.main.DBViewModel
+import com.seeker.views.main.JWTViewModel
 import com.seeker.views.main.MainViewModel
 import com.seeker.views.screens.Screens
 import kotlinx.coroutines.Dispatchers.IO
@@ -89,26 +92,50 @@ class IndexViewModel(mainViewModel: MainViewModel, dBViewModel: DBViewModel): Vi
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun IndexView(navController: NavHostController, mainViewModel: MainViewModel, dBViewModel: DBViewModel) {
     val context = LocalContext.current
     var hasRequestedPermission by remember { mutableStateOf(false) }
+    var hasRequestedNotificaionPermission by remember { mutableStateOf(false) }
     var permissionRequestCompleted by remember { mutableStateOf(false) }
+    var permissionNotificationRequestCompleted by remember { mutableStateOf(false) }
+
     val assets: List<AssetResult> by IndexViewModel(mainViewModel, dBViewModel).assetList.collectAsState()
     val height = LocalConfiguration.current.screenHeightDp
+    val jWTViewModel by remember { mutableStateOf(JWTViewModel(context, mainViewModel)) }
+
+    val permissionNotificationLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        if (it) {
+            Toast.makeText(context, "Notification Permission Granted", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Notification Permission Denied", Toast.LENGTH_SHORT).show()
+        }
+        permissionNotificationRequestCompleted = true
+    }
 
     LaunchedEffect(Unit) {
         if (!mainViewModel.isLoggedIn) navController.navigateAndReplaceStartRoute(Screens.Login.name)
+        val permissionCheckResult =
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+        if (permissionCheckResult != PackageManager.PERMISSION_GRANTED) {
+            // Request a permission
+            permissionNotificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            hasRequestedNotificaionPermission = true
+        }
+        jWTViewModel.validateJWT()
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
         if (it) {
-            Toast.makeText(context, "Permission Granted", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Camera Permission Granted", Toast.LENGTH_SHORT).show()
             navController.navigate(Screens.QR.name)
         } else {
-            Toast.makeText(context, "Permission Denied", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Camera Permission Denied", Toast.LENGTH_SHORT).show()
             navController.navigate(Screens.QR.name)
         }
         permissionRequestCompleted = true
@@ -162,6 +189,7 @@ fun IndexView(navController: NavHostController, mainViewModel: MainViewModel, dB
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Preview(showBackground = true)
 @Composable
 fun IndexViewPreview() {
