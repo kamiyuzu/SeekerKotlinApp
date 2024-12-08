@@ -5,15 +5,12 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Color
-import android.graphics.drawable.AdaptiveIconDrawable
 import android.os.Build
 import android.util.Log
-import androidx.compose.runtime.remember
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.res.ResourcesCompat
+import androidx.core.content.ContextCompat
 import com.seeker.R
 
 val VERBOSE_NOTIFICATION_CHANNEL_NAME: CharSequence = "Seeker JWT Notifications"
@@ -22,7 +19,7 @@ val NOTIFICATION_TITLE: CharSequence = "Seeker JWT"
 const val CHANNEL_ID = "VERBOSE_NOTIFICATION"
 const val NOTIFICATION_ID = 1
 
-fun makeStatusNotification(message: String, context: Context) {
+fun makeStatusNotification(message: String, context: Context, valid: Boolean) {
     Log.println(Log.DEBUG, "makeStatusNotification", "Starting...")
     // Make a channel if necessary
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -43,7 +40,7 @@ fun makeStatusNotification(message: String, context: Context) {
 
     // Create the notification
     val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-        .setSmallIcon(R.mipmap.ic_notification)
+        .setSmallIcon(R.drawable.security_svgrepo_com)
         .setContentTitle(NOTIFICATION_TITLE)
         .setContentText(message)
         .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -52,7 +49,18 @@ fun makeStatusNotification(message: String, context: Context) {
     // Show the notification
     if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
         Log.println(Log.DEBUG, "makeStatusNotification", "Launching notification...")
-        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, builder.build())
+        if (valid) NotificationManagerCompat
+            .from(context)
+            .notify(
+            NOTIFICATION_ID,
+            builder.setColor(ContextCompat.getColor(context, R.color.teal_200)).build()
+        )
+        else NotificationManagerCompat
+            .from(context)
+            .notify(
+                NOTIFICATION_ID,
+                builder.setColor(ContextCompat.getColor(context, R.color.red)).build()
+            )
     }
     else Log.println(Log.DEBUG, "makeStatusNotification", "NOT LAUNCHING...")
 }

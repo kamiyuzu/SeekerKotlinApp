@@ -17,12 +17,12 @@ class ValidateJWTWorker(private val ctx: Context, params: WorkerParameters): Cor
             return@withContext try {
                 if (validateJWT() == "valid") {
                     Log.println(Log.DEBUG, JWT_WORKER_TAG, "ValidateJWTWorker validated JWT successfully")
-                    makeStatusNotification("Your current JWT is valid", ctx)
+                    makeStatusNotification("Your current JWT is valid", ctx, true)
                     Result.success()
                 }
                 else {
                     Log.println(Log.DEBUG, JWT_WORKER_TAG, "ValidateJWTWorker validated JWT with errors")
-                    makeStatusNotification("Your current JWT is not valid", ctx)
+                    makeStatusNotification("Your current JWT is not valid", ctx, false)
                     Result.failure()
                 }
             } catch (throwable: Throwable) {
