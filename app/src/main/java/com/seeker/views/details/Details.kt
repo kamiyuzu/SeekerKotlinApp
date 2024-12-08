@@ -93,7 +93,6 @@ class DetailsViewModel(): ViewModel() {
 fun Share(text: String, context: Context, scope: CoroutineScope, imgBitmap: Bitmap?) {
     val randNo = Random().nextInt(100000)
     val cacheFile = File.createTempFile("IMG_$randNo", ".png", context.cacheDir)
-    Log.println(Log.DEBUG, "Share", "Created" + cacheFile.path)
     val shareManager = rememberShareManager()
 
     Button(onClick = {
