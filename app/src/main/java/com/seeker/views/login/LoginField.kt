@@ -12,16 +12,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.VisualTransformation
+import com.seeker.R
 
 @Composable
 fun LoginField(
     value: String,
     onChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    label: String = "Username",
-    placeholder: String = "Enter your username"
+    label: String = stringResource(R.string.username),
+    placeholder: String = stringResource(R.string.enter_username)
 ) {
 
     val focusManager = LocalFocusManager.current

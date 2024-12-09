@@ -1,11 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Seeker</string>
-    <string name="switch_check" translatable="false">Remember checkbox</string>
-    <string name="login_name" translatable="false">Login</string>
-    <string name="index_name" translatable="false">Index</string>
-    <string name="qr_name" translatable="false">QRScanner</string>
-    <string name="details_name" translatable="false">Details</string>
-    <string name="categories_name" translatable="false">Categories</string>
     <string name="username">Username</string>
     <string name="password">Password</string>
     <string name="remember_check">Remember me</string>

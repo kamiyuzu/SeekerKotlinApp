@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Seeker</string>
+    <string name="username">Usuario</string>
+    <string name="password">Contraseña</string>
+    <string name="remember_check">Recuérdame</string>
+    <string name="login">Iniciar sesión</string>
+    <string name="home">Inicio</string>
+    <string name="log_out">Finalizar la sesión</string>
+    <string name="enter_username">Introduce tu usuario</string>
+    <string name="enter_password">Introduce tu contraseña</string>
+    <string name="share">Compartir</string>
+    <string name="robot_whole_body">Robot cuerpo completo</string>
+    <string name="monster_whole_body">Monstruo cuerpo completo</string>
+    <string name="robot_head">Cabeza de robot</string>
+    <string name="cat">Gato</string>
+    <string name="human_technician">Técnico humano</string>
+</resources>

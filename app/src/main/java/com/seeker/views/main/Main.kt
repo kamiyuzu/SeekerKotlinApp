@@ -7,6 +7,7 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -37,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.navigation.NavBackStackEntry
@@ -47,6 +49,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import androidx.room.Room
+import com.google.android.gms.common.internal.StringResourceValueReader
+import com.seeker.R
 import com.seeker.activities.MainActivity
 import com.seeker.activities.client
 import com.seeker.data.NavigationItems
@@ -74,6 +78,7 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.header
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.launch
+import java.io.StringReader
 
 class MainViewModel: ViewModel() {
     var isLoggedIn = false
@@ -164,7 +169,7 @@ fun MainView(navController: NavHostController, mainContext: MainActivity, mainVi
     ///List of Navigation Items that will be clicked
     val items = listOf(
         NavigationItems(
-            title = "Home",
+            title = stringResource(R.string.home),
             selectedIcon = Icons.Filled.Home,
             unselectedIcon = Icons.Outlined.Home,
             route = Screens.Index.title,
@@ -173,7 +178,7 @@ fun MainView(navController: NavHostController, mainContext: MainActivity, mainVi
             }
         ),
         NavigationItems(
-            title = "Log out",
+            title = stringResource(R.string.log_out),
             selectedIcon = Icons.AutoMirrored.Filled.Logout,
             unselectedIcon = Icons.AutoMirrored.Outlined.Logout,
             route = 0,

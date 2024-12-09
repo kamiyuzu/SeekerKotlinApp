@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -40,6 +39,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -53,6 +53,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import coil3.toBitmap
 import com.google.android.gms.location.LocationServices
+import com.seeker.R
 import com.seeker.external.services.AssetResult
 import com.seeker.external.services.assetPost
 import com.seeker.location.RequestLocationPermission
@@ -111,20 +112,22 @@ fun Share(text: String, context: Context, scope: CoroutineScope, imgBitmap: Bitm
         }
     }) {
         Icon(imageVector = Icons.Default.Share, contentDescription = null)
-        Text("Share", modifier = Modifier.padding(start = 8.dp))
+        Text(stringResource(R.string.share), modifier = Modifier.padding(start = 8.dp))
     }
 }
 
+@Composable
 private fun setToCategoryName(setId: Int?): String {
     var categoryName = ""
-    if (setId == 1) categoryName = "Robot whole body"
-    if (setId == 2) categoryName = "Monster whole body"
-    if (setId == 3) categoryName = "Robot head"
-    if (setId == 4) categoryName = "Cat"
-    if (setId == 5) categoryName = "Human technician"
+    if (setId == 1) categoryName = stringResource(R.string.robot_whole_body)
+    if (setId == 2) categoryName = stringResource(R.string.monster_whole_body)
+    if (setId == 3) categoryName = stringResource(R.string.robot_head)
+    if (setId == 4) categoryName = stringResource(R.string.cat)
+    if (setId == 5) categoryName = stringResource(R.string.human_technician)
     return categoryName
 }
 
+@Composable
 private fun setSharableText(setId: Int?, name: String, description: String): String {
     return "The asset: $name from category: ${setToCategoryName(setId)}.\n\nDescription: $description"
 }

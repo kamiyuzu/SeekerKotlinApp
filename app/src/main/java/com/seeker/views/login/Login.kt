@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.res.ResourcesCompat
@@ -190,7 +191,7 @@ fun LoginView(navController: NavHostController, mainViewModel: MainViewModel) {
         )
         Spacer(modifier = Modifier.height(10.dp))
         LabeledCheckbox(
-            label = "Remember me",
+            label = stringResource(R.string.remember_check),
             onCheckChanged = {
                 credentials = credentials.copy(remember = !credentials.remember)
             },
@@ -207,7 +208,7 @@ fun LoginView(navController: NavHostController, mainViewModel: MainViewModel) {
             shape = RoundedCornerShape(20.dp),
             modifier = Modifier.fillMaxWidth(0.5f),
         ) {
-            Text("Login")
+            Text(stringResource(R.string.login))
         }
     }
 
