@@ -3,7 +3,9 @@ package com.seeker.workers
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
@@ -12,6 +14,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.seeker.R
+import com.seeker.activities.MainActivity
 
 val VERBOSE_NOTIFICATION_CHANNEL_NAME: CharSequence = "Seeker JWT Notifications"
 const val VERBOSE_NOTIFICATION_CHANNEL_DESCRIPTION = "Shows notifications whenever work starts"
@@ -43,7 +46,8 @@ fun makeStatusNotification(message: String, context: Context, valid: Boolean) {
         .setSmallIcon(R.drawable.security_svgrepo_com)
         .setContentTitle(NOTIFICATION_TITLE)
         .setContentText(message)
-        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+        .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
         .setVibrate(LongArray(0))
 
     // Show the notification
