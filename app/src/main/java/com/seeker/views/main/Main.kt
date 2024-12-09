@@ -79,6 +79,10 @@ class MainViewModel: ViewModel() {
     var isLoggedIn = false
     var username = ""
     var password = ""
+    var latitude = 0.0
+    var longitude = 0.0
+    var name = ""
+    var description = ""
 }
 
 class DBViewModel(context: Context): ViewModel() {

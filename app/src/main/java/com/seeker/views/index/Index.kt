@@ -126,6 +126,10 @@ fun IndexView(navController: NavHostController, mainViewModel: MainViewModel, dB
             hasRequestedNotificaionPermission = true
         }
         jWTViewModel.validateJWT()
+        mainViewModel.latitude = 0.0
+        mainViewModel.longitude = 0.0
+        mainViewModel.name = ""
+        mainViewModel.description = ""
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -149,31 +153,32 @@ fun IndexView(navController: NavHostController, mainViewModel: MainViewModel, dB
             .padding(horizontal = 30.dp)
     ) {
         Spacer(modifier = Modifier.height(10.dp))
-        LazyColumn {
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(assets){ item ->
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(modifier = Modifier
                     .clickable(
                         onClick = {
+                            mainViewModel.latitude = item.latitude.toDouble()
+                            mainViewModel.longitude = item.longitude.toDouble()
+                            mainViewModel.name = item.name
+                            mainViewModel.description = item.description
                             navController.navigate("${Screens.Details.name}/${item.set}")
                         },
-                    )
+                    ).fillMaxSize()
                 ){
-                    AssetView(Modifier.height((height/4).dp), item.latitude.toDouble(), item.longitude.toDouble(), item.set.toInt(), item.name, item.description, false)
+                    AssetView(Modifier.height((height/8).dp), item.latitude.toDouble(), item.longitude.toDouble(), item.set.toInt(), item.name, item.description, false)
                 }
             }
         }
     }
-    Row(modifier = Modifier
-        .fillMaxSize()
-        .padding(10.dp),
+    Row(modifier = Modifier.fillMaxSize().padding(10.dp),
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.Absolute.Right
     ) {
         FloatingActionButton(
             onClick = {
-                val permissionCheckResult =
-                    ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+                val permissionCheckResult = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
                 if (permissionCheckResult == PackageManager.PERMISSION_GRANTED) {
                     navController.navigate(Screens.QR.name)
                 } else {

@@ -137,7 +137,7 @@ fun AssetView(modifier: Modifier, latitude: Double, longitude: Double, setId: In
     val coroutineScope = rememberCoroutineScope()
 
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer
         )
@@ -165,14 +165,12 @@ fun AssetView(modifier: Modifier, latitude: Double, longitude: Double, setId: In
                     .crossfade(true)
                     .build(),
                 contentDescription = null,
-                modifier = Modifier
+                modifier = modifier
                     .size(width.dp)
                     .padding(borderWidth)
                     .clip(CircleShape),
                 contentScale = ContentScale.Fit,
-                loading = {
-                    CircularProgressIndicator()
-                },
+                loading = { CircularProgressIndicator() },
                 onSuccess = { item ->
                     imgBitmap = item.result.image.toBitmap().asImageBitmap().asAndroidBitmap()
                 }
@@ -209,15 +207,15 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
 
     // State variables to manage location information and permission result text
     var locationText by remember { mutableStateOf("No location obtained :(") }
-    var latitude by remember { mutableDoubleStateOf(0.0) }
-    var longitude by remember { mutableDoubleStateOf(0.0) }
+    var latitude by remember { mutableDoubleStateOf(mainViewModel.latitude) }
+    var longitude by remember { mutableDoubleStateOf(mainViewModel.longitude) }
     var showPermissionResultText by remember { mutableStateOf(false) }
     var permissionResultText by remember { mutableStateOf("Permission granted...") }
     val snackBarHostState = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
     val detailsViewModel by remember { mutableStateOf(DetailsViewModel()) }
-    var name by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf(mainViewModel.name) }
+    var description by remember { mutableStateOf(mainViewModel.description) }
     var assetCreated by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -225,86 +223,87 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
     }
 
     // Request location permission using a Compose function
-    RequestLocationPermission(
-        onPermissionGranted = {
-            // Callback when permission is granted
-            showPermissionResultText = true
-            permissionResultText = "Permission granted..."
-            // Attempt to get the last known user location
-            getLastUserLocation(
-                onGetLastLocationSuccess = {
-                    latitude = it.first
-                    longitude = it.second
-                    Log.println(Log.DEBUG, "LocationServices", "Location using LAST-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}")
-                    coroutineScope.launch(Dispatchers.IO) {
-                        if (!assetCreated) {
-                            val result = detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId")
-                            name = result.name
-                            description = result.description
-                            assetCreated = true
+    if (latitude == 0.0)
+        RequestLocationPermission(
+            onPermissionGranted = {
+                // Callback when permission is granted
+                showPermissionResultText = true
+                permissionResultText = "Permission granted..."
+                // Attempt to get the last known user location
+                getLastUserLocation(
+                    onGetLastLocationSuccess = {
+                        latitude = it.first
+                        longitude = it.second
+                        Log.println(Log.DEBUG, "LocationServices", "Location using LAST-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}")
+                        coroutineScope.launch(Dispatchers.IO) {
+                            if (!assetCreated) {
+                                val result = detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId")
+                                name = result.name
+                                description = result.description
+                                assetCreated = true
+                            }
+                            snackBarHostState.showSnackbar("Success getting current location ✅")
                         }
-                        snackBarHostState.showSnackbar("Success getting current location ✅")
-                    }
-                    locationText = "Location using LAST-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}"
-                },
-                onGetLastLocationFailed = { exception ->
-                    showPermissionResultText = true
-                    Log.println(Log.DEBUG, "LocationServices", exception.localizedMessage ?: "Error getting last location")
-                    coroutineScope.launch {
-                        snackBarHostState.showSnackbar("Error getting current location 🚧")
-                    }
-                    locationText = exception.localizedMessage ?: "Error getting current location 🚧"
-                },
-                onGetLastLocationIsNull = {
-                    // Attempt to get the current user location
-                    getCurrentLocation(
-                        onGetCurrentLocationSuccess = {
-                            Log.println(Log.DEBUG, "LocationServices", "Location using CURRENT-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}")
-                            coroutineScope.launch(Dispatchers.IO) {
-                                if (!assetCreated) {
-                                    val result = detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId")
-                                    name = result.name
-                                    description = result.description
-                                    assetCreated = true
+                        locationText = "Location using LAST-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}"
+                    },
+                    onGetLastLocationFailed = { exception ->
+                        showPermissionResultText = true
+                        Log.println(Log.DEBUG, "LocationServices", exception.localizedMessage ?: "Error getting last location")
+                        coroutineScope.launch {
+                            snackBarHostState.showSnackbar("Error getting current location 🚧")
+                        }
+                        locationText = exception.localizedMessage ?: "Error getting current location 🚧"
+                    },
+                    onGetLastLocationIsNull = {
+                        // Attempt to get the current user location
+                        getCurrentLocation(
+                            onGetCurrentLocationSuccess = {
+                                Log.println(Log.DEBUG, "LocationServices", "Location using CURRENT-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}")
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    if (!assetCreated) {
+                                        val result = detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId")
+                                        name = result.name
+                                        description = result.description
+                                        assetCreated = true
+                                    }
+                                    snackBarHostState.showSnackbar("Success getting last location ✅")
                                 }
-                                snackBarHostState.showSnackbar("Success getting last location ✅")
-                            }
-                            locationText = "Location using CURRENT-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}"
-                        },
-                        onGetCurrentLocationFailed = {
-                            showPermissionResultText = true
-                            Log.println(Log.DEBUG, "LocationServices", it.localizedMessage ?: "Error Getting Current Location")
-                            coroutineScope.launch {
-                                snackBarHostState.showSnackbar("Error getting last location 🚧")
-                            }
-                            locationText = it.localizedMessage ?: "Error getting last location 🚧"
-                        },
-                        true,
-                        context
-                    )
-                },
-                context
-            )
-        },
-        onPermissionDenied = {
-            // Callback when permission is denied
-            showPermissionResultText = true
-            Log.println(Log.DEBUG, "LocationServices", "Permission denied 🥲")
-            coroutineScope.launch {
-                snackBarHostState.showSnackbar("Permission denied 🥲")
+                                locationText = "Location using CURRENT-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}"
+                            },
+                            onGetCurrentLocationFailed = {
+                                showPermissionResultText = true
+                                Log.println(Log.DEBUG, "LocationServices", it.localizedMessage ?: "Error Getting Current Location")
+                                coroutineScope.launch {
+                                    snackBarHostState.showSnackbar("Error getting last location 🚧")
+                                }
+                                locationText = it.localizedMessage ?: "Error getting last location 🚧"
+                            },
+                            true,
+                            context
+                        )
+                    },
+                    context
+                )
+            },
+            onPermissionDenied = {
+                // Callback when permission is denied
+                showPermissionResultText = true
+                Log.println(Log.DEBUG, "LocationServices", "Permission denied 🥲")
+                coroutineScope.launch {
+                    snackBarHostState.showSnackbar("Permission denied 🥲")
+                }
+                permissionResultText = "Permission denied 🥲"
+            },
+            onPermissionsRevoked = {
+                // Callback when permission is revoked
+                showPermissionResultText = true
+                Log.println(Log.DEBUG, "LocationServices", "Permission revoked 😢")
+                coroutineScope.launch {
+                    snackBarHostState.showSnackbar("Permission revoked 😢")
+                }
+                permissionResultText = "Permission revoked 😢"
             }
-            permissionResultText = "Permission denied 🥲"
-        },
-        onPermissionsRevoked = {
-            // Callback when permission is revoked
-            showPermissionResultText = true
-            Log.println(Log.DEBUG, "LocationServices", "Permission revoked 😢")
-            coroutineScope.launch {
-                snackBarHostState.showSnackbar("Permission revoked 😢")
-            }
-            permissionResultText = "Permission revoked 😢"
-        }
-    )
+        )
 
     Column(
         verticalArrangement = Arrangement.Center,
