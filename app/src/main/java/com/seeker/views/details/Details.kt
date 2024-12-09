@@ -152,9 +152,9 @@ fun AssetView(modifier: Modifier, latitude: Double, longitude: Double, setId: In
         ) {
             Row(modifier = Modifier
                 .padding(10.dp),
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.Absolute.Right
+                verticalAlignment = Alignment.Top
             ) {
+                Spacer(modifier = Modifier.weight(1f))
                 Share(
                     setSharableText(setId, name, description),
                     LocalContext.current,
