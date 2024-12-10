@@ -159,15 +159,15 @@ fun IndexView(navController: NavHostController, mainViewModel: MainViewModel, dB
                 Row(modifier = Modifier
                     .clickable(
                         onClick = {
-                            mainViewModel.latitude = item.latitude.toDouble()
-                            mainViewModel.longitude = item.longitude.toDouble()
+                            mainViewModel.latitude = item.latitude.replace(",", ".").toDouble()
+                            mainViewModel.longitude = item.longitude.replace(",", ".").toDouble()
                             mainViewModel.name = item.name
                             mainViewModel.description = item.description
                             navController.navigate("${Screens.Details.name}/${item.set}")
                         },
                     ).fillMaxSize()
                 ){
-                    AssetView(Modifier.height((height/8).dp), item.latitude.toDouble(), item.longitude.toDouble(), item.set.toInt(), item.name, item.description, false)
+                    AssetView(Modifier.height((height/8).dp), item.latitude.replace(",", ".").toDouble(), item.longitude.replace(",", ".").toDouble(), item.set.toInt(), item.name, item.description, false)
                 }
             }
         }
