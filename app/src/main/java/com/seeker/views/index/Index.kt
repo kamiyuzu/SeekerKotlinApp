@@ -83,7 +83,7 @@ class IndexViewModel(mainViewModel: MainViewModel, dBViewModel: DBViewModel): Vi
                 Log.println(Log.INFO,"IndexViewModel/fetchIndex", "Error ${e.stackTraceToString()}")
                 dBViewModel.repo.getAllAssets().flowOn(IO).collect {
                     val assetResultList = it.map { assetIt ->
-                        AssetResult(assetIt.id.toString(), assetIt.username, assetIt.set, assetIt.latitude, assetIt.longitude, assetIt.name, assetIt.description)
+                        AssetResult(assetIt.id.toString(), assetIt.username, assetIt.set, assetIt.latitude, assetIt.longitude, assetIt.name, assetIt.description, assetIt.tag)
                     }
                     _assetList.value = assetResultList
                 }
@@ -163,11 +163,13 @@ fun IndexView(navController: NavHostController, mainViewModel: MainViewModel, dB
                             mainViewModel.longitude = item.longitude.replace(",", ".").toDouble()
                             mainViewModel.name = item.name
                             mainViewModel.description = item.description
+                            mainViewModel.tag = item.tag
+                            mainViewModel.id = item.id
                             navController.navigate("${Screens.Details.name}/${item.set}")
                         },
                     ).fillMaxSize()
-                ){
-                    AssetView(Modifier.height((height/8).dp), item.latitude.replace(",", ".").toDouble(), item.longitude.replace(",", ".").toDouble(), item.set.toInt(), item.name, item.description, false)
+                ) {
+                    AssetView(Modifier.height((height/8).dp), item.id, item.latitude.replace(",", ".").toDouble(), item.longitude.replace(",", ".").toDouble(), item.set.toInt(), item.name, item.description, mainViewModel, false)
                 }
             }
         }

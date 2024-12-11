@@ -29,4 +29,7 @@ data class AssetEntity(
 
     @SerialName("description")
     val description: String = "",
-    )
+
+    @SerialName("tag")
+    val tag: String = "",
+)

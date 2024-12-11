@@ -20,4 +20,7 @@
     <string name="robot_head">Robot head</string>
     <string name="cat">Cat</string>
     <string name="human_technician">Human technician</string>
+    <string name="edit">Edit</string>
+    <string name="edit_field">Tag</string>
+    <string name="enter_edit_field">Enter your tag</string>
 </resources>

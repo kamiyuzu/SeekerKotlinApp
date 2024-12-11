@@ -1,12 +1,12 @@
 package com.seeker.views.details
 
-import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -14,7 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,7 +43,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
@@ -60,59 +59,26 @@ import com.seeker.location.RequestLocationPermission
 import com.seeker.location.fusedLocationProviderClient
 import com.seeker.location.getCurrentLocation
 import com.seeker.location.getLastUserLocation
-import com.seeker.sharemanager.MimeType
-import com.seeker.sharemanager.ShareFileModel
-import com.seeker.sharemanager.rememberShareManager
 import com.seeker.ui.theme.LocalSnackbarHostState
 import com.seeker.ui.theme.SeekerTheme
 import com.seeker.views.login.navigateAndReplaceStartRoute
 import com.seeker.views.main.MainViewModel
 import com.seeker.views.screens.Screens
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.io.ByteArrayOutputStream
-import java.io.File
 import java.util.Locale
-import java.util.Random
 
 class DetailsViewModel(): ViewModel() {
-    suspend fun assetDetailsPost(username: String, latitude: Double, longitude: Double, set: String): AssetResult {
+    suspend fun assetDetailsPost(username: String, latitude: Double, longitude: Double, set: String, tag: String): AssetResult {
         try {
             val latitudeParsed = String.format(Locale.getDefault(), "%.3f", latitude)
             val longitudeParsed = String.format(Locale.getDefault(), "%.3f", longitude)
-            return assetPost(username, latitudeParsed, longitudeParsed, set)
+            return assetPost(username, latitudeParsed, longitudeParsed, set, tag)
         } catch (e: Exception) {
             // Handle exceptions (like network failure)
-            Log.println(Log.DEBUG,"LoginViewModel/login", "Error ${e.stackTraceToString()}")
-            return AssetResult("", "", "", "", "", "", "")
+            Log.println(Log.DEBUG,"DetailsViewModel/post", "Error ${e.stackTraceToString()}")
+            return AssetResult("", "", "", "", "", "", "", "")
         }
-    }
-}
-
-@Composable
-fun Share(text: String, context: Context, scope: CoroutineScope, imgBitmap: Bitmap?) {
-    val randNo = Random().nextInt(100000)
-    val cacheFile = File.createTempFile("IMG_$randNo", ".png", context.cacheDir)
-    val shareManager = rememberShareManager()
-
-    Button(onClick = {
-        scope.launch {
-            val stream = ByteArrayOutputStream()
-            imgBitmap?.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
-            val imageByteArray = stream.toByteArray()
-            cacheFile.writeBytes(imageByteArray)
-            Log.println(Log.DEBUG, "Share", "Writing image into " + cacheFile.path + "...")
-            val shared = ShareFileModel(
-                uri = FileProvider.getUriForFile(context, context.packageName + ".provider", cacheFile),
-                mime = MimeType.IMAGE,
-                text = text,
-            )
-            shareManager.shareFile(shared)
-        }
-    }) {
-        Icon(imageVector = Icons.Default.Share, contentDescription = null)
-        Text(stringResource(R.string.share), modifier = Modifier.padding(start = 8.dp))
     }
 }
 
@@ -133,11 +99,13 @@ private fun setSharableText(setId: Int?, name: String, description: String): Str
 }
 
 @Composable
-fun AssetView(modifier: Modifier, latitude: Double, longitude: Double, setId: Int?, name: String, description: String, extraInfo: Boolean = true) {
+fun AssetView(modifier: Modifier, id: String, latitude: Double, longitude: Double, setId: Int?, name: String, description: String, mainViewModel: MainViewModel, extraInfo: Boolean = true) {
     val width = LocalConfiguration.current.screenWidthDp
     val borderWidth = 10.dp
     var imgBitmap by remember { mutableStateOf<Bitmap?>(null) }
     val coroutineScope = rememberCoroutineScope()
+    var tag by remember { mutableStateOf(mainViewModel.tag) }
+    var edit by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier,
@@ -186,10 +154,34 @@ fun AssetView(modifier: Modifier, latitude: Double, longitude: Double, setId: In
                     modifier = Modifier.padding(top = 8.dp),
                 )
                 if (extraInfo) {
-                    Text(
-                        text = setToCategoryName(setId),
-                        modifier = Modifier.alpha(0.8f),
-                    )
+                    if (!edit) {
+                        Row(modifier = Modifier.padding(10.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = tag.ifEmpty { setToCategoryName(setId) },
+                                modifier = Modifier.alpha(0.8f),
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            Button(onClick = { edit = !edit }) {
+                                Icon(imageVector = Icons.Default.Edit, contentDescription = null)
+                                Text(stringResource(R.string.edit), modifier = Modifier.padding(start = 8.dp))
+                            }
+                        }
+                    } else {
+                        Row(modifier = Modifier.padding(10.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                            EditField(
+                                value = tag,
+                                onChange = { data -> tag = data },
+                                submit = {
+                                    coroutineScope.launch {
+                                        val result = mainViewModel.assetDetailsPatch(id, tag)
+                                        tag = result.tag.ifEmpty { "" }
+                                        edit = !edit
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
                     Text(
                         text = description,
                         modifier = Modifier
@@ -220,6 +212,7 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
     var name by remember { mutableStateOf(mainViewModel.name) }
     var description by remember { mutableStateOf(mainViewModel.description) }
     var assetCreated by remember { mutableStateOf(false) }
+    var id by remember { mutableStateOf(mainViewModel.id) }
 
     LaunchedEffect(Unit) {
         if (!mainViewModel.isLoggedIn) navController.navigateAndReplaceStartRoute(Screens.Login.name)
@@ -240,9 +233,10 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
                         Log.println(Log.DEBUG, "LocationServices", "Location using LAST-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}")
                         coroutineScope.launch(Dispatchers.IO) {
                             if (!assetCreated) {
-                                val result = detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId")
+                                val result = detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId", "")
                                 name = result.name
                                 description = result.description
+                                id = result.id
                                 assetCreated = true
                             }
                             snackBarHostState.showSnackbar("Success getting current location ✅")
@@ -264,9 +258,10 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
                                 Log.println(Log.DEBUG, "LocationServices", "Location using CURRENT-LOCATION: LATITUDE: ${it.first}, LONGITUDE: ${it.second}")
                                 coroutineScope.launch(Dispatchers.IO) {
                                     if (!assetCreated) {
-                                        val result = detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId")
+                                        val result = detailsViewModel.assetDetailsPost(mainViewModel.username, latitude, longitude, "$setId", "")
                                         name = result.name
                                         description = result.description
+                                        id = result.id
                                         assetCreated = true
                                     }
                                     snackBarHostState.showSnackbar("Success getting last location ✅")
@@ -318,7 +313,7 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
     ) {
         if (name.isNotEmpty()) {
             Spacer(modifier = Modifier.height(10.dp))
-            AssetView(Modifier, latitude, longitude, setId, name, description)
+            AssetView(Modifier, id, latitude, longitude, setId, name, description, mainViewModel)
         }
     }
 }

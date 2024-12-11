@@ -15,4 +15,7 @@
     <string name="robot_head">Cabeza de robot</string>
     <string name="cat">Gato</string>
     <string name="human_technician">Técnico humano</string>
+    <string name="edit">Editar</string>
+    <string name="edit_field">Etiqueta</string>
+    <string name="enter_edit_field">Introduce tu etiqueta</string>
 </resources>

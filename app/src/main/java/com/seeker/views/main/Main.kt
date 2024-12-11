@@ -7,7 +7,6 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
-import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -49,7 +48,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import androidx.room.Room
-import com.google.android.gms.common.internal.StringResourceValueReader
 import com.seeker.R
 import com.seeker.activities.MainActivity
 import com.seeker.activities.client
@@ -59,6 +57,8 @@ import com.seeker.database.repositories.AssetRepositoryImpl
 import com.seeker.datastores.PASSWORD_PREFERENCE_KEY
 import com.seeker.datastores.USERNAME_PREFERENCE_KEY
 import com.seeker.datastores.storePreference
+import com.seeker.external.services.AssetResult
+import com.seeker.external.services.assetPatch
 import com.seeker.ui.theme.LocalSnackbarHostState
 import com.seeker.views.details.DetailsView
 import com.seeker.views.index.IndexView
@@ -78,16 +78,26 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.header
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.launch
-import java.io.StringReader
 
-class MainViewModel: ViewModel() {
+class MainViewModel(var username: String = ""): ViewModel() {
     var isLoggedIn = false
-    var username = ""
     var password = ""
     var latitude = 0.0
     var longitude = 0.0
     var name = ""
     var description = ""
+    var tag = ""
+    var id = ""
+
+    suspend fun assetDetailsPatch(id: String, tag: String): AssetResult {
+        try {
+            return assetPatch(username, id, tag)
+        } catch (e: Exception) {
+            // Handle exceptions (like network failure)
+            Log.println(Log.DEBUG,"DetailsViewModel/patch", "Error ${e.stackTraceToString()}")
+            return AssetResult("", "", "", "", "", "", "", "")
+        }
+    }
 }
 
 class DBViewModel(context: Context): ViewModel() {
@@ -139,11 +149,11 @@ fun MainView(navController: NavHostController, mainContext: MainActivity, mainVi
     val startDestination = if(!mainViewModel.isLoggedIn) Screens.Login.name else Screens.Index.name
     val width = LocalConfiguration.current.screenWidthDp
 
-    client = HttpClient(CIO){
+    client = HttpClient(CIO) {
         install(Logging) {
             level = LogLevel.ALL
         }
-        install(ContentNegotiation){
+        install(ContentNegotiation) {
             json()
         }
         HttpResponseValidator {
