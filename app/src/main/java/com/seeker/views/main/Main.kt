@@ -286,7 +286,7 @@ fun MainView(navController: NavHostController, mainContext: MainActivity, mainVi
                 )) { navBackStackEntry ->
                     /* Extracting the id from the route */
                     val setId = navBackStackEntry.arguments?.getInt("setId")
-                    DetailsView(navController = navController, mainViewModel = mainViewModel, setId = setId)
+                    DetailsView(navController = navController, mainViewModel = mainViewModel, setId = setId, dBViewModel = dBViewModel)
                 }
             }
         }

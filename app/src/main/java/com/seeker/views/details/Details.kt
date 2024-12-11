@@ -53,6 +53,7 @@ import coil3.request.crossfade
 import coil3.toBitmap
 import com.google.android.gms.location.LocationServices
 import com.seeker.R
+import com.seeker.database.entities.AssetEntity
 import com.seeker.external.services.AssetResult
 import com.seeker.external.services.assetPost
 import com.seeker.location.RequestLocationPermission
@@ -62,6 +63,7 @@ import com.seeker.location.getLastUserLocation
 import com.seeker.ui.theme.LocalSnackbarHostState
 import com.seeker.ui.theme.SeekerTheme
 import com.seeker.views.login.navigateAndReplaceStartRoute
+import com.seeker.views.main.DBViewModel
 import com.seeker.views.main.MainViewModel
 import com.seeker.views.screens.Screens
 import kotlinx.coroutines.Dispatchers
@@ -196,10 +198,13 @@ fun AssetView(modifier: Modifier, id: String, latitude: Double, longitude: Doubl
 }
 
 @Composable
-fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, setId: Int?) {
+fun DetailsView(
+    navController: NavHostController,
+    mainViewModel: MainViewModel,
+    setId: Int?,
+    dBViewModel: DBViewModel
+) {
     val context = LocalContext.current
-    fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
-
     // State variables to manage location information and permission result text
     var locationText by remember { mutableStateOf("No location obtained :(") }
     var latitude by remember { mutableDoubleStateOf(mainViewModel.latitude) }
@@ -215,6 +220,7 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
     var id by remember { mutableStateOf(mainViewModel.id) }
 
     LaunchedEffect(Unit) {
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
         if (!mainViewModel.isLoggedIn) navController.navigateAndReplaceStartRoute(Screens.Login.name)
     }
 
@@ -237,6 +243,7 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
                                 name = result.name
                                 description = result.description
                                 id = result.id
+                                dBViewModel.repo.insert(AssetEntity(id = result.id.toInt(), username = result.username, latitude = result.latitude, longitude = result.longitude, set = result.set, name = result.name, description = result.description, tag = result.tag))
                                 assetCreated = true
                             }
                             snackBarHostState.showSnackbar("Success getting current location ✅")
@@ -262,6 +269,7 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
                                         name = result.name
                                         description = result.description
                                         id = result.id
+                                        dBViewModel.repo.insert(AssetEntity(id = result.id.toInt(), username = result.username, latitude = result.latitude, longitude = result.longitude, set = result.set, name = result.name, description = result.description, tag = result.tag))
                                         assetCreated = true
                                     }
                                     snackBarHostState.showSnackbar("Success getting last location ✅")
@@ -323,7 +331,14 @@ fun DetailsView(navController: NavHostController, mainViewModel: MainViewModel, 
 fun DetailsViewPreview() {
     val navController = rememberNavController()
     val mainViewModel = MainViewModel()
+    val context = LocalContext.current
+    val dBViewModel = DBViewModel(context)
     SeekerTheme {
-        DetailsView(navController = navController, mainViewModel = mainViewModel, setId = 1)
+        DetailsView(
+            navController = navController,
+            mainViewModel = mainViewModel,
+            setId = 1,
+            dBViewModel = dBViewModel
+        )
     }
 }

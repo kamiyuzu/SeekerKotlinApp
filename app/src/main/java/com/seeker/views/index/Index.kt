@@ -74,7 +74,7 @@ class IndexViewModel(mainViewModel: MainViewModel, dBViewModel: DBViewModel): Vi
                 Log.println(Log.DEBUG,"IndexViewModel/fetchIndex", "Assets ${assets}")
                 assets.forEach { asset ->
                     Log.println(Log.DEBUG,"IndexViewModel/fetchIndex", "asset $asset")
-                    val insertResponse = dBViewModel.repo.insert(AssetEntity(id = asset.id.toInt(), username = asset.username, latitude = asset.latitude, longitude = asset.longitude, set = asset.set))
+                    val insertResponse = dBViewModel.repo.insert(AssetEntity(id = asset.id.toInt(), username = asset.username, latitude = asset.latitude, longitude = asset.longitude, set = asset.set, name = asset.name, description = asset.description, tag = asset.tag))
                     Log.println(Log.DEBUG,"IndexViewModel/fetchIndex", "insert_response $insertResponse")
                 }
                 _assetList.tryEmit(assets)
@@ -130,6 +130,7 @@ fun IndexView(navController: NavHostController, mainViewModel: MainViewModel, dB
         mainViewModel.longitude = 0.0
         mainViewModel.name = ""
         mainViewModel.description = ""
+        mainViewModel.tag = ""
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
