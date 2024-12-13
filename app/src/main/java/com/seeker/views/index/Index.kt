@@ -41,9 +41,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.google.android.gms.location.LocationServices
 import com.seeker.database.entities.AssetEntity
 import com.seeker.external.services.AssetResult
 import com.seeker.external.services.index
+import com.seeker.location.fusedLocationProviderClient
 import com.seeker.ui.theme.SeekerTheme
 import com.seeker.views.details.AssetView
 import com.seeker.views.login.navigateAndReplaceStartRoute
@@ -117,6 +119,7 @@ fun IndexView(navController: NavHostController, mainViewModel: MainViewModel, dB
     }
 
     LaunchedEffect(Unit) {
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
         if (!mainViewModel.isLoggedIn) navController.navigateAndReplaceStartRoute(Screens.Login.name)
         val permissionCheckResult =
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)

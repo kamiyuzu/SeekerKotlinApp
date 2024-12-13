@@ -206,7 +206,6 @@ fun DetailsView(
 ) {
     val context = LocalContext.current
     LaunchedEffect(Unit) {
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
         if (!mainViewModel.isLoggedIn) navController.navigateAndReplaceStartRoute(Screens.Login.name)
     }
 
