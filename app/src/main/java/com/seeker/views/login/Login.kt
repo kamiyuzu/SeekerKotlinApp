@@ -47,6 +47,7 @@ import com.seeker.datastores.USERNAME_PREFERENCE_KEY
 import com.seeker.datastores.readPreference
 import com.seeker.datastores.storePreference
 import com.seeker.external.services.login
+import com.seeker.external.services.validateJWT
 import com.seeker.ui.theme.SeekerTheme
 import com.seeker.views.main.MainViewModel
 import com.seeker.views.screens.Screens
@@ -125,17 +126,20 @@ fun NavHostController.navigateAndReplaceStartRoute(newHomeRoute: String) {
     //navigate(newHomeRoute)
 }
 
-private fun checkLoggedUser(context: Context, navController: NavHostController, currentScreen: Screens, mainViewModel: MainViewModel) {
+private suspend fun checkLoggedUser(context: Context, navController: NavHostController, currentScreen: Screens, mainViewModel: MainViewModel) {
     Log.println(Log.INFO,"Credentials", "Checking if user has already logged in")
     if (currentScreen.title == Screens.Login.title) {
         val pass = readPreference(context, PASSWORD_PREFERENCE_KEY)
         val user = readPreference(context, USERNAME_PREFERENCE_KEY)
         if (pass != "" && user != "") {
             Log.println(Log.INFO, "Credentials", "The user is already logged in")
-            mainViewModel.password = readPreference(context, PASSWORD_PREFERENCE_KEY)
-            mainViewModel.isLoggedIn = true
-            mainViewModel.username = readPreference(context, USERNAME_PREFERENCE_KEY)
-            navController.navigateAndReplaceStartRoute(Screens.Index.name)
+            if (validateJWT() == "valid") {
+                mainViewModel.password = readPreference(context, PASSWORD_PREFERENCE_KEY)
+                mainViewModel.isLoggedIn = true
+                mainViewModel.username = readPreference(context, USERNAME_PREFERENCE_KEY)
+                navController.navigateAndReplaceStartRoute(Screens.Index.name)
+            }
+            else Log.println(Log.INFO, "Credentials", "Token is invalid")
         }
     }
 }
