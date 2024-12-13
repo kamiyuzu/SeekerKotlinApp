@@ -205,6 +205,11 @@ fun DetailsView(
     dBViewModel: DBViewModel
 ) {
     val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
+        if (!mainViewModel.isLoggedIn) navController.navigateAndReplaceStartRoute(Screens.Login.name)
+    }
+
     // State variables to manage location information and permission result text
     var locationText by remember { mutableStateOf("No location obtained :(") }
     var latitude by remember { mutableDoubleStateOf(mainViewModel.latitude) }
@@ -218,11 +223,6 @@ fun DetailsView(
     var description by remember { mutableStateOf(mainViewModel.description) }
     var assetCreated by remember { mutableStateOf(false) }
     var id by remember { mutableStateOf(mainViewModel.id) }
-
-    LaunchedEffect(Unit) {
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
-        if (!mainViewModel.isLoggedIn) navController.navigateAndReplaceStartRoute(Screens.Login.name)
-    }
 
     // Request location permission using a Compose function
     if (latitude == 0.0)

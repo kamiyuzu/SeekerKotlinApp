@@ -4,7 +4,6 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
-import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.core.app.ActivityCompat
@@ -37,11 +36,13 @@ fun RequestLocationPermission(
             Manifest.permission.ACCESS_FINE_LOCATION,
         )
     ){ permissionsMap ->
-        val arePermissionsGranted = permissionsMap.values.reduce { acc, next ->
-            acc && next
-        }
+        if (permissionsMap.isNotEmpty()) {
+            val arePermissionsGranted = permissionsMap.values.reduce { acc, next ->
+                acc && next
+            }
 
-        if (arePermissionsGranted) { onPermissionGranted.invoke() } else { onPermissionDenied.invoke() }
+            if (arePermissionsGranted) { onPermissionGranted.invoke() } else { onPermissionDenied.invoke() }
+        }
     }
 
     // Use LaunchedEffect to handle permissions logic when the composition is launched.
@@ -91,18 +92,20 @@ fun getLastUserLocation(
     // Check if location permissions are granted
     if (areLocationPermissionsGranted(context)) {
         // Retrieve the last known location
-        fusedLocationProviderClient.lastLocation
-            .addOnSuccessListener { location ->
-                location?.let {
-                    // If location is not null, invoke the success callback with latitude and longitude
-                    onGetLastLocationSuccess(Pair(it.latitude, it.longitude))
+        if(::fusedLocationProviderClient.isInitialized) {
+            fusedLocationProviderClient.lastLocation
+                .addOnSuccessListener { location ->
+                    location?.let {
+                        // If location is not null, invoke the success callback with latitude and longitude
+                        onGetLastLocationSuccess(Pair(it.latitude, it.longitude))
+                    }
+                    if (location == null) onGetLastLocationIsNull()
                 }
-                if (location == null) onGetLastLocationIsNull()
-            }
-            .addOnFailureListener { exception ->
-                // If an error occurs, invoke the failure callback with the exception
-                onGetLastLocationFailed(exception)
-            }
+                .addOnFailureListener { exception ->
+                    // If an error occurs, invoke the failure callback with the exception
+                    onGetLastLocationFailed(exception)
+                }
+        }
     }
 }
 
@@ -130,16 +133,18 @@ fun getCurrentLocation(
     // Check if location permissions are granted
     if (areLocationPermissionsGranted(context)) {
         // Retrieve the current location asynchronously
-        fusedLocationProviderClient.getCurrentLocation(
-            accuracy, CancellationTokenSource().token,
-        ).addOnSuccessListener { location ->
-            location?.let {
-                // If location is not null, invoke the success callback with latitude and longitude
-                onGetCurrentLocationSuccess(Pair(it.latitude, it.longitude))
+        if(::fusedLocationProviderClient.isInitialized) {
+            fusedLocationProviderClient.getCurrentLocation(
+                accuracy, CancellationTokenSource().token,
+            ).addOnSuccessListener { location ->
+                location?.let {
+                    // If location is not null, invoke the success callback with latitude and longitude
+                    onGetCurrentLocationSuccess(Pair(it.latitude, it.longitude))
+                }
+            }.addOnFailureListener { exception ->
+                // If an error occurs, invoke the failure callback with the exception
+                onGetCurrentLocationFailed(exception)
             }
-        }.addOnFailureListener { exception ->
-            // If an error occurs, invoke the failure callback with the exception
-            onGetCurrentLocationFailed(exception)
         }
     }
 }
